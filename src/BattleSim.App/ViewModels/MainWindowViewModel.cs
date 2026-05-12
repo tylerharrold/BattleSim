@@ -155,7 +155,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var borderBrush = isActor ? Brushes.Lime : isTarget ? Brushes.Yellow : Brushes.Gray;
         var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
 
-        return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp, attacks, borderBrush, borderThickness);
+        return new GridCellViewModel(troop.Name, troop.ClassDefinition.DisplayName, hp, attacks, borderBrush, borderThickness);
     }
 
     private void AddSetupEventsToLog()

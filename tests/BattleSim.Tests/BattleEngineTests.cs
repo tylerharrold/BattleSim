@@ -87,19 +87,37 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
-    public void FighterBattleAttackLimit_UsesRelativeFormationRank()
+    public void FighterBattleAttackLimit_UsesDefinitionProfileByRelativeFormationRank()
     {
-        var stats = Stats.Default;
-
-        var leftBack = new Troop("Left Back Fighter", TroopClass.Fighter, stats, new GridPosition(1, 0));
-        var leftFront = new Troop("Left Front Fighter", TroopClass.Fighter, stats, new GridPosition(1, 2));
-        var rightBack = new Troop("Right Back Fighter", TroopClass.Fighter, stats, new GridPosition(1, 2));
-        var rightFront = new Troop("Right Front Fighter", TroopClass.Fighter, stats, new GridPosition(1, 0));
+        var leftBack = new Troop("Left Back Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var leftMiddle = new Troop("Left Middle Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 1));
+        var leftFront = new Troop("Left Front Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
 
         Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(leftBack, BattleSide.Left));
+        Assert.Equal(2, BattleAttackRules.GetBattleAttackLimit(leftMiddle, BattleSide.Left));
         Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(leftFront, BattleSide.Left));
-        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(rightBack, BattleSide.Right));
-        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(rightFront, BattleSide.Right));
+    }
+
+    [Fact]
+    public void ArcherBattleAttackLimit_UsesDefinitionProfileByRelativeFormationRank()
+    {
+        var rightFront = new Troop("Right Front Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 0));
+        var rightMiddle = new Troop("Right Middle Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 1));
+        var rightBack = new Troop("Right Back Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 2));
+
+        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(rightFront, BattleSide.Right));
+        Assert.Equal(2, BattleAttackRules.GetBattleAttackLimit(rightMiddle, BattleSide.Right));
+        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(rightBack, BattleSide.Right));
+    }
+
+    [Fact]
+    public void BattleAttackRules_DoesNotContainClassSpecificSwitchLogic()
+    {
+        var sourcePath = FindRepoFile("src/BattleSim.Engine/BattleAttackRules.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.DoesNotContain("TroopClass.", source);
+        Assert.DoesNotContain("BuiltInTroopClasses.", source);
     }
 
     [Fact]
@@ -154,5 +172,24 @@ public sealed class BattleEngineTests
         var state = engine.RunNextAttack(BattleState.CreateDefault(seed: 1)).State;
 
         Assert.Throws<InvalidOperationException>(() => state.RotateFormationClockwise(BattleSide.Left));
+    }
+
+    private static string FindRepoFile(string relativePath)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Could not find {relativePath} from {AppContext.BaseDirectory}.");
     }
 }

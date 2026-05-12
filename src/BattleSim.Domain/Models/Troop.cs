@@ -5,11 +5,18 @@ namespace BattleSim.Domain.Models;
 public sealed class Troop
 {
     public Troop(string name, TroopClass troopClass, Stats stats, GridPosition position)
+        : this(name, BuiltInTroopClasses.FromLegacyEnum(troopClass) with { BaseStats = stats }, position)
+    {
+    }
+
+    public Troop(string name, TroopClassDefinition classDefinition, GridPosition position)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Troop name is required.", nameof(name));
         }
+
+        ArgumentNullException.ThrowIfNull(classDefinition);
 
         if (!position.IsInFormation)
         {
@@ -17,15 +24,15 @@ public sealed class Troop
         }
 
         Name = name;
-        TroopClass = troopClass;
-        Stats = stats;
+        ClassDefinition = classDefinition;
+        Stats = classDefinition.BaseStats;
         Position = position;
-        CurrentHitPoints = stats.MaxHitPoints;
+        CurrentHitPoints = Stats.MaxHitPoints;
     }
 
     public string Name { get; }
 
-    public TroopClass TroopClass { get; }
+    public TroopClassDefinition ClassDefinition { get; }
 
     public Stats Stats { get; }
 
@@ -80,7 +87,7 @@ public sealed class Troop
 
     public Troop CloneAtPosition(GridPosition position)
     {
-        var clone = new Troop(Name, TroopClass, Stats, position);
+        var clone = new Troop(Name, ClassDefinition, position);
         clone.CurrentHitPoints = CurrentHitPoints;
         clone.MaxBattleAttacks = MaxBattleAttacks;
         clone.RemainingBattleAttacks = RemainingBattleAttacks;

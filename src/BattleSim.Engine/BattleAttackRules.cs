@@ -9,38 +9,7 @@ public static class BattleAttackRules
     {
         var rank = GetFormationRank(troop.Position, side);
 
-        return troop.TroopClass switch
-        {
-            TroopClass.Fighter => rank switch
-            {
-                FormationRank.Front => 3,
-                FormationRank.Middle => 2,
-                FormationRank.Back => 1,
-                _ => throw new ArgumentOutOfRangeException(nameof(rank))
-            },
-            TroopClass.Archer => rank switch
-            {
-                FormationRank.Front => 1,
-                FormationRank.Middle => 2,
-                FormationRank.Back => 3,
-                _ => throw new ArgumentOutOfRangeException(nameof(rank))
-            },
-            TroopClass.Cleric => rank switch
-            {
-                FormationRank.Front => 1,
-                FormationRank.Middle => 2,
-                FormationRank.Back => 2,
-                _ => throw new ArgumentOutOfRangeException(nameof(rank))
-            },
-            TroopClass.Wizard => rank switch
-            {
-                FormationRank.Front => 1,
-                FormationRank.Middle => 3,
-                FormationRank.Back => 2,
-                _ => throw new ArgumentOutOfRangeException(nameof(rank))
-            },
-            _ => throw new ArgumentOutOfRangeException(nameof(troop.TroopClass))
-        };
+        return troop.ClassDefinition.AttackProfile.GetAttackCount(rank);
     }
 
     public static FormationRank GetFormationRank(GridPosition position, BattleSide side)

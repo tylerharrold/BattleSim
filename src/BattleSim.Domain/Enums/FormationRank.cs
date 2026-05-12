@@ -1,4 +1,4 @@
-namespace BattleSim.Engine;
+namespace BattleSim.Domain.Enums;
 
 public enum FormationRank
 {
