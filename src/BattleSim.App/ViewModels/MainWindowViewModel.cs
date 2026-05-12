@@ -35,6 +35,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string roundLabel = string.Empty;
 
+    [ObservableProperty]
+    private string? selectedBattleLogEntry;
+
     [RelayCommand]
     private void RunOneRound()
     {
@@ -59,6 +62,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         battleState = BattleState.CreateDefault();
         BattleLog.Clear();
+        SelectedBattleLogEntry = null;
         BattleLog.Add("Battle reset.");
         AddSetupEventsToLog();
         RefreshFromState();
