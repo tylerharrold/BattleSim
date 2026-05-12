@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BattleSim.App.Views.MainWindow"
+        Width="980"
+        Height="620"
+        MinWidth="760"
+        MinHeight="500"
+        Title="BattleSim">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="*,320" Margin="16" ColumnSpacing="16" RowSpacing="16">
+    <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
+      <Button Content="Run One Turn" Command="{Binding RunOneTurnCommand}" />
+      <Button Content="Reset Battle" Command="{Binding ResetBattleCommand}" />
+      <TextBlock Text="{Binding TurnLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="16" RowSpacing="8">
+      <TextBlock Text="{Binding LeftUnitName}" FontSize="18" FontWeight="SemiBold" />
+      <TextBlock Grid.Column="1" Text="{Binding RightUnitName}" FontSize="18" FontWeight="SemiBold" />
+
+      <ItemsControl Grid.Row="1" ItemsSource="{Binding LeftGridCells}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="3" Columns="3" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border BorderBrush="#777" BorderThickness="1" MinHeight="96" Padding="6" Background="#F6FAFF">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ClassName}" FontSize="12" />
+                <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding RightGridCells}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="3" Columns="3" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border BorderBrush="#777" BorderThickness="1" MinHeight="96" Padding="6" Background="#FFF7F7">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ClassName}" FontSize="12" />
+                <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Grid>
+
+    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#999" BorderThickness="1" Padding="10">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Battle Log" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <ListBox ItemsSource="{Binding BattleLog}" />
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSim.Domain", "src\BattleSim.Domain\BattleSim.Domain.csproj", "{1B0DA658-7F1D-4F4D-9E07-7C3B625D4522}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSim.Engine", "src\BattleSim.Engine\BattleSim.Engine.csproj", "{A94061BA-2E8B-4E4D-9D95-6621F76F77BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSim.App", "src\BattleSim.App\BattleSim.App.csproj", "{C3626299-D542-4E93-A3B7-AD6079144235}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSim.Tests", "tests\BattleSim.Tests\BattleSim.Tests.csproj", "{5E78DCD4-E5F3-485B-9EC0-6BC11D47AF77}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1B0DA658-7F1D-4F4D-9E07-7C3B625D4522}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B0DA658-7F1D-4F4D-9E07-7C3B625D4522}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B0DA658-7F1D-4F4D-9E07-7C3B625D4522}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B0DA658-7F1D-4F4D-9E07-7C3B625D4522}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A94061BA-2E8B-4E4D-9D95-6621F76F77BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A94061BA-2E8B-4E4D-9D95-6621F76F77BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A94061BA-2E8B-4E4D-9D95-6621F76F77BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A94061BA-2E8B-4E4D-9D95-6621F76F77BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3626299-D542-4E93-A3B7-AD6079144235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3626299-D542-4E93-A3B7-AD6079144235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3626299-D542-4E93-A3B7-AD6079144235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3626299-D542-4E93-A3B7-AD6079144235}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E78DCD4-E5F3-485B-9EC0-6BC11D47AF77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E78DCD4-E5F3-485B-9EC0-6BC11D47AF77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E78DCD4-E5F3-485B-9EC0-6BC11D47AF77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E78DCD4-E5F3-485B-9EC0-6BC11D47AF77}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
