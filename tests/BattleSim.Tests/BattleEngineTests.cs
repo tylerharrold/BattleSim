@@ -78,10 +78,12 @@ public sealed class BattleEngineTests
 
         var setupEvents = state.CreateSetupEvents();
 
-        Assert.Equal(3, setupEvents.Count);
+        Assert.Equal(5, setupEvents.Count);
         Assert.StartsWith("Unit order:", setupEvents[0].Description);
         Assert.StartsWith("Blue Unit troop order:", setupEvents[1].Description);
         Assert.StartsWith("Red Unit troop order:", setupEvents[2].Description);
+        Assert.StartsWith("Blue Unit attack counts:", setupEvents[3].Description);
+        Assert.StartsWith("Red Unit attack counts:", setupEvents[4].Description);
     }
 
     [Fact]
@@ -126,5 +128,31 @@ public sealed class BattleEngineTests
         }
 
         Assert.All(state.AllTroops.Where(troop => !troop.IsDefeated), troop => Assert.Equal(0, troop.RemainingBattleAttacks));
+    }
+
+    [Fact]
+    public void RotateFormationClockwise_RecalculatesRelativeAttackCounts()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+        var initialBlueFighter = state.LeftUnit.Troops.Single(troop => troop.Name == "Blue Fighter");
+
+        state = state.RotateFormationClockwise(BattleSide.Left);
+        state = state.RotateFormationClockwise(BattleSide.Left);
+
+        var rotatedBlueFighter = state.LeftUnit.Troops.Single(troop => troop.Name == "Blue Fighter");
+
+        Assert.Equal(1, initialBlueFighter.MaxBattleAttacks);
+        Assert.Equal(new GridPosition(1, 2), rotatedBlueFighter.Position);
+        Assert.Equal(3, rotatedBlueFighter.MaxBattleAttacks);
+        Assert.Equal(3, rotatedBlueFighter.RemainingBattleAttacks);
+    }
+
+    [Fact]
+    public void RotateFormationClockwise_IsBlockedAfterBattleStarts()
+    {
+        var engine = new BattleEngine();
+        var state = engine.RunNextAttack(BattleState.CreateDefault(seed: 1)).State;
+
+        Assert.Throws<InvalidOperationException>(() => state.RotateFormationClockwise(BattleSide.Left));
     }
 }

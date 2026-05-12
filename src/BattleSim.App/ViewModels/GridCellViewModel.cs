@@ -7,10 +7,12 @@ public sealed record GridCellViewModel(
     string Name,
     string ClassName,
     string HitPointsLabel,
+    string AttacksLabel,
     IBrush BorderBrush,
     Thickness BorderThickness)
 {
     public static GridCellViewModel Empty { get; } = new(
+        string.Empty,
         string.Empty,
         string.Empty,
         string.Empty,

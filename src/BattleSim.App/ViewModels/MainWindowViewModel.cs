@@ -17,8 +17,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public MainWindowViewModel()
     {
-        BattleLog.Add(new BattleLogEntryViewModel("Battle initialized."));
-        AddSetupEventsToLog();
+        RebuildSetupLog("Battle initialized.");
         RefreshFromState();
     }
 
@@ -40,21 +39,42 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private BattleLogEntryViewModel? selectedBattleLogEntry;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRotateFormations))]
+    private bool battleHasStarted;
+
+    public bool CanRotateFormations => !BattleHasStarted;
+
+    [RelayCommand]
+    private void RotateLeftFormation()
+    {
+        RotateFormation(BattleSide.Left, "Blue formation rotated clockwise.");
+    }
+
+    [RelayCommand]
+    private void RotateRightFormation()
+    {
+        RotateFormation(BattleSide.Right, "Red formation rotated clockwise.");
+    }
+
     [RelayCommand]
     private void RunNextAttack()
     {
+        BattleHasStarted = true;
         ApplyStepResult(battleEngine.RunNextAttack(battleState), selectLatestAttack: true);
     }
 
     [RelayCommand]
     private void RunNextTurn()
     {
+        BattleHasStarted = true;
         ApplyStepResult(battleEngine.RunNextTurn(battleState), selectLatestAttack: false);
     }
 
     [RelayCommand]
     private void RunOneRound()
     {
+        BattleHasStarted = true;
         ApplyStepResult(battleEngine.RunOneRound(battleState), selectLatestAttack: false);
     }
 
@@ -92,10 +112,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void ResetBattle()
     {
         battleState = BattleState.CreateDefault();
-        BattleLog.Clear();
+        BattleHasStarted = false;
         SelectedBattleLogEntry = null;
-        BattleLog.Add(new BattleLogEntryViewModel("Battle reset."));
-        AddSetupEventsToLog();
+        RebuildSetupLog("Battle reset.");
         RefreshFromState();
     }
 
@@ -128,6 +147,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private GridCellViewModel ToCell(Troop troop, Unit unit)
     {
         var hp = $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP";
+        var attacks = $"{troop.RemainingBattleAttacks}/{troop.MaxBattleAttacks} attacks";
         var side = unit == battleState.LeftUnit ? BattleSide.Left : BattleSide.Right;
         var isActor = SelectedBattleLogEntry?.ActorSide == side && SelectedBattleLogEntry.ActorPosition == troop.Position;
         var isTarget = SelectedBattleLogEntry?.TargetSide == side && SelectedBattleLogEntry.TargetPosition == troop.Position;
@@ -135,7 +155,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var borderBrush = isActor ? Brushes.Lime : isTarget ? Brushes.Yellow : Brushes.Gray;
         var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
 
-        return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp, borderBrush, borderThickness);
+        return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp, attacks, borderBrush, borderThickness);
     }
 
     private void AddSetupEventsToLog()
@@ -144,6 +164,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             BattleLog.Add(ToLogEntry(setupEvent));
         }
+    }
+
+    private void RebuildSetupLog(string firstLine)
+    {
+        BattleLog.Clear();
+        BattleLog.Add(new BattleLogEntryViewModel(firstLine));
+        AddSetupEventsToLog();
+    }
+
+    private void RotateFormation(BattleSide side, string logLine)
+    {
+        if (!CanRotateFormations)
+        {
+            return;
+        }
+
+        battleState = battleState.RotateFormationClockwise(side);
+        SelectedBattleLogEntry = null;
+        RebuildSetupLog(logLine);
+        RefreshFromState();
     }
 
     private static BattleLogEntryViewModel ToLogEntry(BattleEvent battleEvent)

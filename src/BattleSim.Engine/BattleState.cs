@@ -43,6 +43,13 @@ public sealed class BattleState
 
     public IEnumerable<Troop> AllTroops => LeftUnit.Troops.Concat(RightUnit.Troops);
 
+    public bool HasBattleStarted =>
+        HasRoundStarted ||
+        RoundNumber != 1 ||
+        UnitOrderIndex != 0 ||
+        TroopOrderIndex != 0 ||
+        AllTroops.Any(troop => troop.RemainingBattleAttacks != troop.MaxBattleAttacks);
+
     public BattleState CloneForProgress()
     {
         return new BattleState(
@@ -67,6 +74,21 @@ public sealed class BattleState
             hasRoundStarted);
     }
 
+    public BattleState RotateFormationClockwise(BattleSide side)
+    {
+        if (HasBattleStarted)
+        {
+            throw new InvalidOperationException("Formations can only be rotated before battle starts.");
+        }
+
+        var rotatedUnit = RotateUnitClockwise(GetUnit(side));
+        ApplyBattleAttackLimits(rotatedUnit, side);
+
+        return side == BattleSide.Left
+            ? new BattleState(rotatedUnit, RightUnit, Plan)
+            : new BattleState(LeftUnit, rotatedUnit, Plan);
+    }
+
     public IReadOnlyList<BattleEvent> CreateSetupEvents()
     {
         var firstUnit = GetUnit(Plan.UnitOrder[0]).Name;
@@ -76,7 +98,9 @@ public sealed class BattleState
         {
             new BattleEvent($"Unit order: {firstUnit}, then {secondUnit}."),
             new BattleEvent($"{LeftUnit.Name} troop order: {FormatTroopOrder(BattleSide.Left)}."),
-            new BattleEvent($"{RightUnit.Name} troop order: {FormatTroopOrder(BattleSide.Right)}.")
+            new BattleEvent($"{RightUnit.Name} troop order: {FormatTroopOrder(BattleSide.Right)}."),
+            new BattleEvent($"{LeftUnit.Name} attack counts: {FormatAttackCounts(LeftUnit)}."),
+            new BattleEvent($"{RightUnit.Name} attack counts: {FormatAttackCounts(RightUnit)}.")
         };
     }
 
@@ -141,6 +165,21 @@ public sealed class BattleState
     private string FormatTroopOrder(BattleSide side)
     {
         return string.Join(", ", Plan.TroopOrders[side]);
+    }
+
+    private static string FormatAttackCounts(Unit unit)
+    {
+        return string.Join(", ", unit.Troops.Select(troop => $"{troop.Name} {troop.RemainingBattleAttacks}"));
+    }
+
+    private static Unit RotateUnitClockwise(Unit unit)
+    {
+        return new Unit(unit.Name, unit.Troops.Select(troop => troop.CloneAtPosition(RotatePositionClockwise(troop.Position))));
+    }
+
+    private static GridPosition RotatePositionClockwise(GridPosition position)
+    {
+        return new GridPosition(position.Column, 2 - position.Row);
     }
 
     private static void ApplyBattleAttackLimits(Unit unit, BattleSide side)

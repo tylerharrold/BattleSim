@@ -75,7 +75,12 @@ public sealed class Troop
 
     public Troop Clone()
     {
-        var clone = new Troop(Name, TroopClass, Stats, Position);
+        return CloneAtPosition(Position);
+    }
+
+    public Troop CloneAtPosition(GridPosition position)
+    {
+        var clone = new Troop(Name, TroopClass, Stats, position);
         clone.CurrentHitPoints = CurrentHitPoints;
         clone.MaxBattleAttacks = MaxBattleAttacks;
         clone.RemainingBattleAttacks = RemainingBattleAttacks;
