@@ -34,7 +34,34 @@ public sealed class Troop
     // Domain state stays UI-agnostic; presentation concerns such as colors and labels are mapped in the app layer.
     public int CurrentHitPoints { get; private set; }
 
+    public int MaxBattleAttacks { get; private set; }
+
+    public int RemainingBattleAttacks { get; private set; }
+
     public bool IsDefeated => CurrentHitPoints <= 0;
+
+    public bool CanAttack => !IsDefeated && RemainingBattleAttacks > 0;
+
+    public void SetBattleAttackLimit(int attackCount)
+    {
+        if (attackCount is < 1 or > 3)
+        {
+            throw new ArgumentOutOfRangeException(nameof(attackCount), "Battle attack counts must be between 1 and 3.");
+        }
+
+        MaxBattleAttacks = attackCount;
+        RemainingBattleAttacks = attackCount;
+    }
+
+    public void SpendBattleAttack()
+    {
+        if (RemainingBattleAttacks <= 0)
+        {
+            throw new InvalidOperationException($"{Name} has no battle attacks remaining.");
+        }
+
+        RemainingBattleAttacks--;
+    }
 
     public void TakeDamage(int amount)
     {
@@ -50,6 +77,8 @@ public sealed class Troop
     {
         var clone = new Troop(Name, TroopClass, Stats, Position);
         clone.CurrentHitPoints = CurrentHitPoints;
+        clone.MaxBattleAttacks = MaxBattleAttacks;
+        clone.RemainingBattleAttacks = RemainingBattleAttacks;
         return clone;
     }
 }

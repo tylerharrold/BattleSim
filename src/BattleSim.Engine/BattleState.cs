@@ -39,7 +39,9 @@ public sealed class BattleState
 
     public BattleSide CurrentSide => Plan.UnitOrder[UnitOrderIndex];
 
-    public bool IsComplete => LeftUnit.IsDefeated || RightUnit.IsDefeated;
+    public bool IsComplete => !AllTroops.Any(troop => troop.CanAttack);
+
+    public IEnumerable<Troop> AllTroops => LeftUnit.Troops.Concat(RightUnit.Troops);
 
     public BattleState CloneForProgress()
     {
@@ -100,6 +102,8 @@ public sealed class BattleState
         });
 
         var random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+        ApplyBattleAttackLimits(left, BattleSide.Left);
+        ApplyBattleAttackLimits(right, BattleSide.Right);
         var plan = CreateBattlePlan(left, right, random);
 
         return new BattleState(left, right, plan);
@@ -137,5 +141,13 @@ public sealed class BattleState
     private string FormatTroopOrder(BattleSide side)
     {
         return string.Join(", ", Plan.TroopOrders[side]);
+    }
+
+    private static void ApplyBattleAttackLimits(Unit unit, BattleSide side)
+    {
+        foreach (var troop in unit.Troops)
+        {
+            troop.SetBattleAttackLimit(BattleAttackRules.GetBattleAttackLimit(troop, side));
+        }
     }
 }

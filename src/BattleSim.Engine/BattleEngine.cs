@@ -51,6 +51,7 @@ public sealed class BattleEngine
         var result = RunNextAttack(state);
         var events = result.Events.ToList();
         var nextState = result.State;
+        turnSide = events.FirstOrDefault(battleEvent => battleEvent.ActorSide.HasValue)?.ActorSide ?? turnSide;
 
         while (!nextState.IsComplete && nextState.HasRoundStarted && nextState.CurrentSide == turnSide)
         {
@@ -106,7 +107,7 @@ public sealed class BattleEngine
             var troopName = troopOrder[index];
             var attacker = attackerUnit.Troops.FirstOrDefault(troop => troop.Name == troopName);
 
-            if (attacker is not null && !attacker.IsDefeated)
+            if (attacker is not null && attacker.CanAttack)
             {
                 return new ScheduledAttacker(attacker, index);
             }
@@ -130,14 +131,22 @@ public sealed class BattleEngine
 
         if (defender is null)
         {
+            attacker.SpendBattleAttack();
+            events.Add(new BattleEvent(
+                $"{attacker.Name} has no living target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                attacker.Name,
+                Damage: 0,
+                ActorSide: attackerSide,
+                ActorPosition: attacker.Position));
             return;
         }
 
         var damage = Math.Max(1, attacker.Stats.Attack - defender.Stats.Defense);
         defender.TakeDamage(damage);
+        attacker.SpendBattleAttack();
 
         events.Add(new BattleEvent(
-            $"{attacker.Name} hits {defender.Name} for {damage} damage.",
+            $"{attacker.Name} hits {defender.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
             attacker.Name,
             defender.Name,
             damage,

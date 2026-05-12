@@ -1,4 +1,6 @@
 using BattleSim.Engine;
+using BattleSim.Domain.Enums;
+using BattleSim.Domain.Models;
 using Xunit;
 
 namespace BattleSim.Tests;
@@ -80,5 +82,49 @@ public sealed class BattleEngineTests
         Assert.StartsWith("Unit order:", setupEvents[0].Description);
         Assert.StartsWith("Blue Unit troop order:", setupEvents[1].Description);
         Assert.StartsWith("Red Unit troop order:", setupEvents[2].Description);
+    }
+
+    [Fact]
+    public void FighterBattleAttackLimit_UsesRelativeFormationRank()
+    {
+        var stats = Stats.Default;
+
+        var leftBack = new Troop("Left Back Fighter", TroopClass.Fighter, stats, new GridPosition(1, 0));
+        var leftFront = new Troop("Left Front Fighter", TroopClass.Fighter, stats, new GridPosition(1, 2));
+        var rightBack = new Troop("Right Back Fighter", TroopClass.Fighter, stats, new GridPosition(1, 2));
+        var rightFront = new Troop("Right Front Fighter", TroopClass.Fighter, stats, new GridPosition(1, 0));
+
+        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(leftBack, BattleSide.Left));
+        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(leftFront, BattleSide.Left));
+        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(rightBack, BattleSide.Right));
+        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(rightFront, BattleSide.Right));
+    }
+
+    [Fact]
+    public void RunNextAttack_DecrementsRemainingBattleAttacksAndLogsCount()
+    {
+        var engine = new BattleEngine();
+        var state = BattleState.CreateDefault(seed: 1);
+
+        var result = engine.RunNextAttack(state);
+        var attackEvent = result.Events.Last(battleEvent => battleEvent.ActorName is not null);
+        var attacker = result.State.AllTroops.Single(troop => troop.Name == attackEvent.ActorName);
+
+        Assert.Contains($"{attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.", attackEvent.Description);
+        Assert.Equal(attacker.MaxBattleAttacks - 1, attacker.RemainingBattleAttacks);
+    }
+
+    [Fact]
+    public void BattleCompletesWhenEveryLivingTroopExhaustsBattleAttacks()
+    {
+        var engine = new BattleEngine();
+        var state = BattleState.CreateDefault(seed: 1);
+
+        while (!state.IsComplete)
+        {
+            state = engine.RunOneRound(state).State;
+        }
+
+        Assert.All(state.AllTroops.Where(troop => !troop.IsDefeated), troop => Assert.Equal(0, troop.RemainingBattleAttacks));
     }
 }
