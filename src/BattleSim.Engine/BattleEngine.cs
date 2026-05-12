@@ -23,7 +23,13 @@ public sealed class BattleEngine
 
             if (nextAttacker is not null)
             {
-                ResolveAttack(nextAttacker.Troop, nextState.GetOpponent(nextState.CurrentSide), events);
+                var defenderSide = nextState.CurrentSide == BattleSide.Left ? BattleSide.Right : BattleSide.Left;
+                ResolveAttack(
+                    nextAttacker.Troop,
+                    nextState.CurrentSide,
+                    nextState.GetOpponent(nextState.CurrentSide),
+                    defenderSide,
+                    events);
                 nextState = AdvanceAfterAttack(nextState, nextAttacker.TroopOrderIndex);
                 break;
             }
@@ -109,7 +115,12 @@ public sealed class BattleEngine
         return null;
     }
 
-    private static void ResolveAttack(Troop attacker, Unit defenderUnit, ICollection<BattleEvent> events)
+    private static void ResolveAttack(
+        Troop attacker,
+        BattleSide attackerSide,
+        Unit defenderUnit,
+        BattleSide defenderSide,
+        ICollection<BattleEvent> events)
     {
         // Targeting stays deterministic for now so the only randomness is battle setup order.
         var defender = defenderUnit.LivingTroops
@@ -130,7 +141,9 @@ public sealed class BattleEngine
             attacker.Name,
             defender.Name,
             damage,
+            attackerSide,
             attacker.Position,
+            defenderSide,
             defender.Position));
     }
 

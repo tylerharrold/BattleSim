@@ -27,7 +27,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border BorderBrush="#777" BorderThickness="1" MinHeight="96" Padding="6" Background="#F6FAFF">
+            <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="96" Padding="6" Background="#F6FAFF">
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding ClassName}" FontSize="12" />
@@ -46,7 +46,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <Border BorderBrush="#777" BorderThickness="1" MinHeight="96" Padding="6" Background="#FFF7F7">
+            <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="96" Padding="6" Background="#FFF7F7">
               <StackPanel Spacing="2">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding ClassName}" FontSize="12" />
@@ -61,13 +61,19 @@
     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#999" BorderThickness="1" Padding="10">
       <DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="Battle Log" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
-        <ListBox ItemsSource="{Binding BattleLog}" SelectedItem="{Binding SelectedBattleLogEntry}" />
+        <ListBox ItemsSource="{Binding BattleLog}" SelectedItem="{Binding SelectedBattleLogEntry, Mode=TwoWay}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Description}" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
       </DockPanel>
     </Border>
 
     <TextBox Grid.Row="2"
              Grid.ColumnSpan="2"
-             Text="{Binding SelectedBattleLogEntry}"
+             Text="{Binding SelectedBattleLogEntry.Description, Mode=OneWay}"
              IsReadOnly="True"
              AcceptsReturn="True"
              TextWrapping="Wrap"

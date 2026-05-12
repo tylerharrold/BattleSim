@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Media;
 using BattleSim.Domain.Models;
 using BattleSim.Engine;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,7 +17,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public MainWindowViewModel()
     {
-        BattleLog.Add("Battle initialized.");
+        BattleLog.Add(new BattleLogEntryViewModel("Battle initialized."));
         AddSetupEventsToLog();
         RefreshFromState();
     }
@@ -24,7 +26,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public ObservableCollection<GridCellViewModel> RightGridCells { get; } = new();
 
-    public ObservableCollection<string> BattleLog { get; } = new();
+    public ObservableCollection<BattleLogEntryViewModel> BattleLog { get; } = new();
 
     [ObservableProperty]
     private string leftUnitName = string.Empty;
@@ -36,40 +38,53 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string roundLabel = string.Empty;
 
     [ObservableProperty]
-    private string? selectedBattleLogEntry;
+    private BattleLogEntryViewModel? selectedBattleLogEntry;
 
     [RelayCommand]
     private void RunNextAttack()
     {
-        ApplyStepResult(battleEngine.RunNextAttack(battleState));
+        ApplyStepResult(battleEngine.RunNextAttack(battleState), selectLatestAttack: true);
     }
 
     [RelayCommand]
     private void RunNextTurn()
     {
-        ApplyStepResult(battleEngine.RunNextTurn(battleState));
+        ApplyStepResult(battleEngine.RunNextTurn(battleState), selectLatestAttack: false);
     }
 
     [RelayCommand]
     private void RunOneRound()
     {
-        ApplyStepResult(battleEngine.RunOneRound(battleState));
+        ApplyStepResult(battleEngine.RunOneRound(battleState), selectLatestAttack: false);
     }
 
-    private void ApplyStepResult(BattleStepResult result)
+    partial void OnSelectedBattleLogEntryChanged(BattleLogEntryViewModel? value)
+    {
+        RefreshFromState();
+    }
+
+    private void ApplyStepResult(BattleStepResult result, bool selectLatestAttack)
     {
         battleState = result.State;
+        BattleLogEntryViewModel? latestAttack = null;
 
         foreach (var battleEvent in result.Events)
         {
-            BattleLog.Add(battleEvent.Description);
+            var entry = ToLogEntry(battleEvent);
+            BattleLog.Add(entry);
+
+            if (entry.IsAttack)
+            {
+                latestAttack = entry;
+            }
         }
 
         if (battleState.IsComplete)
         {
-            BattleLog.Add("Battle complete.");
+            BattleLog.Add(new BattleLogEntryViewModel("Battle complete."));
         }
 
+        SelectedBattleLogEntry = selectLatestAttack ? latestAttack : null;
         RefreshFromState();
     }
 
@@ -79,7 +94,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         battleState = BattleState.CreateDefault();
         BattleLog.Clear();
         SelectedBattleLogEntry = null;
-        BattleLog.Add("Battle reset.");
+        BattleLog.Add(new BattleLogEntryViewModel("Battle reset."));
         AddSetupEventsToLog();
         RefreshFromState();
     }
@@ -94,7 +109,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ReplaceCells(RightGridCells, battleState.RightUnit);
     }
 
-    private static void ReplaceCells(ObservableCollection<GridCellViewModel> target, Unit unit)
+    private void ReplaceCells(ObservableCollection<GridCellViewModel> target, Unit unit)
     {
         target.Clear();
 
@@ -105,22 +120,39 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 var troop = unit.Troops.FirstOrDefault(candidate =>
                     candidate.Position.Row == row && candidate.Position.Column == column);
 
-                target.Add(troop is null ? GridCellViewModel.Empty : ToCell(troop));
+                target.Add(troop is null ? GridCellViewModel.Empty : ToCell(troop, unit));
             }
         }
     }
 
-    private static GridCellViewModel ToCell(Troop troop)
+    private GridCellViewModel ToCell(Troop troop, Unit unit)
     {
         var hp = $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP";
-        return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp);
+        var side = unit == battleState.LeftUnit ? BattleSide.Left : BattleSide.Right;
+        var isActor = SelectedBattleLogEntry?.ActorSide == side && SelectedBattleLogEntry.ActorPosition == troop.Position;
+        var isTarget = SelectedBattleLogEntry?.TargetSide == side && SelectedBattleLogEntry.TargetPosition == troop.Position;
+
+        var borderBrush = isActor ? Brushes.Lime : isTarget ? Brushes.Yellow : Brushes.Gray;
+        var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
+
+        return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp, borderBrush, borderThickness);
     }
 
     private void AddSetupEventsToLog()
     {
         foreach (var setupEvent in battleState.CreateSetupEvents())
         {
-            BattleLog.Add(setupEvent.Description);
+            BattleLog.Add(ToLogEntry(setupEvent));
         }
+    }
+
+    private static BattleLogEntryViewModel ToLogEntry(BattleEvent battleEvent)
+    {
+        return new BattleLogEntryViewModel(
+            battleEvent.Description,
+            battleEvent.ActorSide,
+            battleEvent.ActorPosition,
+            battleEvent.TargetSide,
+            battleEvent.TargetPosition);
     }
 }
