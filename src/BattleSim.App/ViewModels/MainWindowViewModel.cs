@@ -39,9 +39,25 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string? selectedBattleLogEntry;
 
     [RelayCommand]
+    private void RunNextAttack()
+    {
+        ApplyStepResult(battleEngine.RunNextAttack(battleState));
+    }
+
+    [RelayCommand]
+    private void RunNextTurn()
+    {
+        ApplyStepResult(battleEngine.RunNextTurn(battleState));
+    }
+
+    [RelayCommand]
     private void RunOneRound()
     {
-        var result = battleEngine.RunOneRound(battleState);
+        ApplyStepResult(battleEngine.RunOneRound(battleState));
+    }
+
+    private void ApplyStepResult(BattleStepResult result)
+    {
         battleState = result.State;
 
         foreach (var battleEvent in result.Events)

@@ -8,6 +8,8 @@
         Title="BattleSim">
   <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,320" Margin="16" ColumnSpacing="16" RowSpacing="16">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
+      <Button Content="Run Next Attack" Command="{Binding RunNextAttackCommand}" />
+      <Button Content="Run Next Turn" Command="{Binding RunNextTurnCommand}" />
       <Button Content="Run One Round" Command="{Binding RunOneRoundCommand}" />
       <Button Content="Reset Battle" Command="{Binding ResetBattleCommand}" />
       <TextBlock Text="{Binding RoundLabel}" VerticalAlignment="Center" Margin="12,0,0,0" />

@@ -4,7 +4,7 @@ namespace BattleSim.Engine;
 
 public sealed class BattleEngine
 {
-    public BattleStepResult RunOneRound(BattleState state)
+    public BattleStepResult RunNextAttack(BattleState state)
     {
         // The engine is the only place that mutates battle progress; UI code receives a result to render.
         if (state.IsComplete)
@@ -12,47 +12,101 @@ public sealed class BattleEngine
             return new BattleStepResult(state, Array.Empty<BattleEvent>());
         }
 
-        var nextState = state.AdvanceRound();
+        var nextState = state.CloneForProgress();
         var events = new List<BattleEvent>();
 
-        events.Add(new BattleEvent($"Round {state.RoundNumber} begins."));
-
-        foreach (var side in nextState.Plan.UnitOrder)
+        while (!nextState.IsComplete)
         {
-            ResolveUnitRound(nextState, side, events);
+            AddPhaseStartEvents(nextState, events);
 
-            if (nextState.IsComplete)
+            var nextAttacker = GetNextScheduledAttacker(nextState);
+
+            if (nextAttacker is not null)
             {
+                ResolveAttack(nextAttacker.Troop, nextState.GetOpponent(nextState.CurrentSide), events);
+                nextState = AdvanceAfterAttack(nextState, nextAttacker.TroopOrderIndex);
                 break;
             }
+
+            nextState = AdvanceToNextUnitOrRound(nextState);
         }
 
         return new BattleStepResult(nextState, events);
     }
 
-    private static void ResolveUnitRound(BattleState state, BattleSide attackerSide, ICollection<BattleEvent> events)
+    public BattleStepResult RunNextTurn(BattleState state)
     {
-        var attackerUnit = state.GetUnit(attackerSide);
-        var defenderUnit = state.GetOpponent(attackerSide);
-
-        events.Add(new BattleEvent($"{attackerUnit.Name} attacks."));
-
-        foreach (var troopName in state.Plan.TroopOrders[attackerSide])
+        if (state.IsComplete)
         {
+            return new BattleStepResult(state, Array.Empty<BattleEvent>());
+        }
+
+        var turnSide = state.CurrentSide;
+        var result = RunNextAttack(state);
+        var events = result.Events.ToList();
+        var nextState = result.State;
+
+        while (!nextState.IsComplete && nextState.HasRoundStarted && nextState.CurrentSide == turnSide)
+        {
+            result = RunNextAttack(nextState);
+            nextState = result.State;
+            events.AddRange(result.Events);
+        }
+
+        return new BattleStepResult(nextState, events);
+    }
+
+    public BattleStepResult RunOneRound(BattleState state)
+    {
+        if (state.IsComplete)
+        {
+            return new BattleStepResult(state, Array.Empty<BattleEvent>());
+        }
+
+        var startingRound = state.RoundNumber;
+        var events = new List<BattleEvent>();
+        var nextState = state;
+
+        while (!nextState.IsComplete && nextState.RoundNumber == startingRound)
+        {
+            var result = RunNextAttack(nextState);
+            nextState = result.State;
+            events.AddRange(result.Events);
+        }
+
+        return new BattleStepResult(nextState, events);
+    }
+
+    private static void AddPhaseStartEvents(BattleState state, ICollection<BattleEvent> events)
+    {
+        if (!state.HasRoundStarted)
+        {
+            events.Add(new BattleEvent($"Round {state.RoundNumber} begins."));
+        }
+
+        if (state.TroopOrderIndex == 0)
+        {
+            events.Add(new BattleEvent($"{state.GetUnit(state.CurrentSide).Name} attacks."));
+        }
+    }
+
+    private static ScheduledAttacker? GetNextScheduledAttacker(BattleState state)
+    {
+        var attackerUnit = state.GetUnit(state.CurrentSide);
+        var troopOrder = state.Plan.TroopOrders[state.CurrentSide];
+
+        for (var index = state.TroopOrderIndex; index < troopOrder.Count; index++)
+        {
+            var troopName = troopOrder[index];
             var attacker = attackerUnit.Troops.FirstOrDefault(troop => troop.Name == troopName);
 
-            if (attacker is null || attacker.IsDefeated)
+            if (attacker is not null && !attacker.IsDefeated)
             {
-                continue;
-            }
-
-            ResolveAttack(attacker, defenderUnit, events);
-
-            if (defenderUnit.IsDefeated)
-            {
-                break;
+                return new ScheduledAttacker(attacker, index);
             }
         }
+
+        return null;
     }
 
     private static void ResolveAttack(Troop attacker, Unit defenderUnit, ICollection<BattleEvent> events)
@@ -79,4 +133,31 @@ public sealed class BattleEngine
             attacker.Position,
             defender.Position));
     }
+
+    private static BattleState AdvanceAfterAttack(BattleState state, int completedTroopOrderIndex)
+    {
+        var nextTroopIndex = completedTroopOrderIndex + 1;
+
+        return nextTroopIndex >= state.Plan.TroopOrders[state.CurrentSide].Count
+            ? AdvanceToNextUnitOrRound(state)
+            : state.WithProgress(state.RoundNumber, state.UnitOrderIndex, nextTroopIndex, hasRoundStarted: true);
+    }
+
+    private static BattleState AdvanceToNextUnitOrRound(BattleState state)
+    {
+        var nextUnitIndex = state.UnitOrderIndex + 1;
+
+        if (nextUnitIndex < state.Plan.UnitOrder.Count)
+        {
+            return state.WithProgress(state.RoundNumber, nextUnitIndex, troopOrderIndex: 0, hasRoundStarted: true);
+        }
+
+        return state.WithProgress(
+            state.RoundNumber + 1,
+            unitOrderIndex: 0,
+            troopOrderIndex: 0,
+            hasRoundStarted: false);
+    }
+
+    private sealed record ScheduledAttacker(Troop Troop, int TroopOrderIndex);
 }

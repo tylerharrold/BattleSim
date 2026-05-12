@@ -5,12 +5,22 @@ namespace BattleSim.Engine;
 
 public sealed class BattleState
 {
-    public BattleState(Unit leftUnit, Unit rightUnit, BattlePlan plan, int roundNumber = 1)
+    public BattleState(
+        Unit leftUnit,
+        Unit rightUnit,
+        BattlePlan plan,
+        int roundNumber = 1,
+        int unitOrderIndex = 0,
+        int troopOrderIndex = 0,
+        bool hasRoundStarted = false)
     {
         LeftUnit = leftUnit;
         RightUnit = rightUnit;
         Plan = plan;
         RoundNumber = roundNumber;
+        UnitOrderIndex = unitOrderIndex;
+        TroopOrderIndex = troopOrderIndex;
+        HasRoundStarted = hasRoundStarted;
     }
 
     public Unit LeftUnit { get; }
@@ -21,9 +31,39 @@ public sealed class BattleState
 
     public int RoundNumber { get; }
 
+    public int UnitOrderIndex { get; }
+
+    public int TroopOrderIndex { get; }
+
+    public bool HasRoundStarted { get; }
+
+    public BattleSide CurrentSide => Plan.UnitOrder[UnitOrderIndex];
+
     public bool IsComplete => LeftUnit.IsDefeated || RightUnit.IsDefeated;
 
-    public BattleState AdvanceRound() => new(LeftUnit.Clone(), RightUnit.Clone(), Plan, RoundNumber + 1);
+    public BattleState CloneForProgress()
+    {
+        return new BattleState(
+            LeftUnit.Clone(),
+            RightUnit.Clone(),
+            Plan,
+            RoundNumber,
+            UnitOrderIndex,
+            TroopOrderIndex,
+            HasRoundStarted);
+    }
+
+    public BattleState WithProgress(int roundNumber, int unitOrderIndex, int troopOrderIndex, bool hasRoundStarted)
+    {
+        return new BattleState(
+            LeftUnit,
+            RightUnit,
+            Plan,
+            roundNumber,
+            unitOrderIndex,
+            troopOrderIndex,
+            hasRoundStarted);
+    }
 
     public IReadOnlyList<BattleEvent> CreateSetupEvents()
     {
