@@ -16,6 +16,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public MainWindowViewModel()
     {
         BattleLog.Add("Battle initialized.");
+        AddSetupEventsToLog();
         RefreshFromState();
     }
 
@@ -32,12 +33,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private string rightUnitName = string.Empty;
 
     [ObservableProperty]
-    private string turnLabel = string.Empty;
+    private string roundLabel = string.Empty;
 
     [RelayCommand]
-    private void RunOneTurn()
+    private void RunOneRound()
     {
-        var result = battleEngine.RunOneTurn(battleState);
+        var result = battleEngine.RunOneRound(battleState);
         battleState = result.State;
 
         foreach (var battleEvent in result.Events)
@@ -59,6 +60,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         battleState = BattleState.CreateDefault();
         BattleLog.Clear();
         BattleLog.Add("Battle reset.");
+        AddSetupEventsToLog();
         RefreshFromState();
     }
 
@@ -66,7 +68,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         LeftUnitName = battleState.LeftUnit.Name;
         RightUnitName = battleState.RightUnit.Name;
-        TurnLabel = $"Turn {battleState.TurnNumber}";
+        RoundLabel = $"Round {battleState.RoundNumber}";
 
         ReplaceCells(LeftGridCells, battleState.LeftUnit);
         ReplaceCells(RightGridCells, battleState.RightUnit);
@@ -92,5 +94,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         var hp = $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP";
         return new GridCellViewModel(troop.Name, troop.TroopClass.ToString(), hp);
+    }
+
+    private void AddSetupEventsToLog()
+    {
+        foreach (var setupEvent in battleState.CreateSetupEvents())
+        {
+            BattleLog.Add(setupEvent.Description);
+        }
     }
 }

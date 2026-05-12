@@ -4,7 +4,7 @@ namespace BattleSim.Engine;
 
 public sealed class BattleEngine
 {
-    public BattleStepResult RunOneTurn(BattleState state)
+    public BattleStepResult RunOneRound(BattleState state)
     {
         // The engine is the only place that mutates battle progress; UI code receives a result to render.
         if (state.IsComplete)
@@ -12,34 +12,58 @@ public sealed class BattleEngine
             return new BattleStepResult(state, Array.Empty<BattleEvent>());
         }
 
-        var nextState = state.AdvanceTurn();
+        var nextState = state.AdvanceRound();
         var events = new List<BattleEvent>();
 
-        ResolveAttack(nextState.LeftUnit, nextState.RightUnit, events);
+        events.Add(new BattleEvent($"Round {state.RoundNumber} begins."));
 
-        if (!nextState.RightUnit.IsDefeated)
+        foreach (var side in nextState.Plan.UnitOrder)
         {
-            ResolveAttack(nextState.RightUnit, nextState.LeftUnit, events);
+            ResolveUnitRound(nextState, side, events);
+
+            if (nextState.IsComplete)
+            {
+                break;
+            }
         }
 
         return new BattleStepResult(nextState, events);
     }
 
-    private static void ResolveAttack(Unit attackerUnit, Unit defenderUnit, ICollection<BattleEvent> events)
+    private static void ResolveUnitRound(BattleState state, BattleSide attackerSide, ICollection<BattleEvent> events)
     {
-        // Deterministic placeholder rule: fastest living troop attacks the first living enemy in reading order.
-        var attacker = attackerUnit.LivingTroops
-            .OrderByDescending(troop => troop.Stats.Speed)
-            .ThenBy(troop => troop.Position.Row)
-            .ThenBy(troop => troop.Position.Column)
-            .FirstOrDefault();
+        var attackerUnit = state.GetUnit(attackerSide);
+        var defenderUnit = state.GetOpponent(attackerSide);
 
+        events.Add(new BattleEvent($"{attackerUnit.Name} attacks."));
+
+        foreach (var troopName in state.Plan.TroopOrders[attackerSide])
+        {
+            var attacker = attackerUnit.Troops.FirstOrDefault(troop => troop.Name == troopName);
+
+            if (attacker is null || attacker.IsDefeated)
+            {
+                continue;
+            }
+
+            ResolveAttack(attacker, defenderUnit, events);
+
+            if (defenderUnit.IsDefeated)
+            {
+                break;
+            }
+        }
+    }
+
+    private static void ResolveAttack(Troop attacker, Unit defenderUnit, ICollection<BattleEvent> events)
+    {
+        // Targeting stays deterministic for now so the only randomness is battle setup order.
         var defender = defenderUnit.LivingTroops
             .OrderBy(troop => troop.Position.Row)
             .ThenBy(troop => troop.Position.Column)
             .FirstOrDefault();
 
-        if (attacker is null || defender is null)
+        if (defender is null)
         {
             return;
         }
@@ -48,10 +72,10 @@ public sealed class BattleEngine
         defender.TakeDamage(damage);
 
         events.Add(new BattleEvent(
+            $"{attacker.Name} hits {defender.Name} for {damage} damage.",
             attacker.Name,
             defender.Name,
             damage,
-            $"{attacker.Name} hits {defender.Name} for {damage} damage.",
             attacker.Position,
             defender.Position));
     }

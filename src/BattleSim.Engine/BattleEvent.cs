@@ -3,9 +3,9 @@ using BattleSim.Domain.Models;
 namespace BattleSim.Engine;
 
 public sealed record BattleEvent(
-    string ActorName,
-    string TargetName,
-    int Damage,
     string Description,
-    GridPosition ActorPosition,
-    GridPosition TargetPosition);
+    string? ActorName = null,
+    string? TargetName = null,
+    int Damage = 0,
+    GridPosition? ActorPosition = null,
+    GridPosition? TargetPosition = null);

@@ -5,24 +5,44 @@ namespace BattleSim.Engine;
 
 public sealed class BattleState
 {
-    public BattleState(Unit leftUnit, Unit rightUnit, int turnNumber = 1)
+    public BattleState(Unit leftUnit, Unit rightUnit, BattlePlan plan, int roundNumber = 1)
     {
         LeftUnit = leftUnit;
         RightUnit = rightUnit;
-        TurnNumber = turnNumber;
+        Plan = plan;
+        RoundNumber = roundNumber;
     }
 
     public Unit LeftUnit { get; }
 
     public Unit RightUnit { get; }
 
-    public int TurnNumber { get; }
+    public BattlePlan Plan { get; }
+
+    public int RoundNumber { get; }
 
     public bool IsComplete => LeftUnit.IsDefeated || RightUnit.IsDefeated;
 
-    public BattleState AdvanceTurn() => new(LeftUnit.Clone(), RightUnit.Clone(), TurnNumber + 1);
+    public BattleState AdvanceRound() => new(LeftUnit.Clone(), RightUnit.Clone(), Plan, RoundNumber + 1);
 
-    public static BattleState CreateDefault()
+    public IReadOnlyList<BattleEvent> CreateSetupEvents()
+    {
+        var firstUnit = GetUnit(Plan.UnitOrder[0]).Name;
+        var secondUnit = GetUnit(Plan.UnitOrder[1]).Name;
+
+        return new[]
+        {
+            new BattleEvent($"Unit order: {firstUnit}, then {secondUnit}."),
+            new BattleEvent($"{LeftUnit.Name} troop order: {FormatTroopOrder(BattleSide.Left)}."),
+            new BattleEvent($"{RightUnit.Name} troop order: {FormatTroopOrder(BattleSide.Right)}.")
+        };
+    }
+
+    public Unit GetUnit(BattleSide side) => side == BattleSide.Left ? LeftUnit : RightUnit;
+
+    public Unit GetOpponent(BattleSide side) => side == BattleSide.Left ? RightUnit : LeftUnit;
+
+    public static BattleState CreateDefault(int? seed = null)
     {
         // The engine owns sample battle creation so the UI can reset without embedding combat setup rules.
         var left = new Unit("Blue Unit", new[]
@@ -39,6 +59,43 @@ public sealed class BattleState
             new Troop("Red Archer", TroopClass.Archer, new Stats(18, 5, 1, 6), new GridPosition(2, 1))
         });
 
-        return new BattleState(left, right);
+        var random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+        var plan = CreateBattlePlan(left, right, random);
+
+        return new BattleState(left, right, plan);
+    }
+
+    private static BattlePlan CreateBattlePlan(Unit left, Unit right, Random random)
+    {
+        // These random choices happen once at battle creation so every round uses the same flow.
+        var unitOrder = random.Next(2) == 0
+            ? new[] { BattleSide.Left, BattleSide.Right }
+            : new[] { BattleSide.Right, BattleSide.Left };
+
+        var troopOrders = new Dictionary<BattleSide, IReadOnlyList<string>>
+        {
+            [BattleSide.Left] = Shuffle(left.Troops.Select(troop => troop.Name), random),
+            [BattleSide.Right] = Shuffle(right.Troops.Select(troop => troop.Name), random)
+        };
+
+        return new BattlePlan(unitOrder, troopOrders);
+    }
+
+    private static IReadOnlyList<string> Shuffle(IEnumerable<string> names, Random random)
+    {
+        var shuffled = names.ToList();
+
+        for (var index = shuffled.Count - 1; index > 0; index--)
+        {
+            var swapIndex = random.Next(index + 1);
+            (shuffled[index], shuffled[swapIndex]) = (shuffled[swapIndex], shuffled[index]);
+        }
+
+        return shuffled;
+    }
+
+    private string FormatTroopOrder(BattleSide side)
+    {
+        return string.Join(", ", Plan.TroopOrders[side]);
     }
 }

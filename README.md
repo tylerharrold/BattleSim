@@ -41,4 +41,4 @@ dotnet test
 dotnet run --project src/BattleSim.App/BattleSim.App.csproj
 ```
 
-The app starts with two placeholder 3x3 formations, a battle log, and buttons to run one deterministic turn or reset the battle.
+The app starts with two placeholder 3x3 formations, a battle log, and buttons to run one deterministic round or reset the battle.
