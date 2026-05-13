@@ -1,4 +1,5 @@
 using BattleSim.Domain.Models;
+using BattleSim.Domain.Enums;
 
 namespace BattleSim.Engine;
 
@@ -24,8 +25,10 @@ public sealed class BattleEngine
             if (nextAttacker is not null)
             {
                 var defenderSide = nextState.CurrentSide == BattleSide.Left ? BattleSide.Right : BattleSide.Left;
-                ResolveAttack(
+                var action = GetNextBattleAction(nextAttacker.Troop, nextState.CurrentSide);
+                ResolveAction(
                     nextAttacker.Troop,
+                    action,
                     nextState.CurrentSide,
                     nextState.GetOpponent(nextState.CurrentSide),
                     defenderSide,
@@ -116,14 +119,37 @@ public sealed class BattleEngine
         return null;
     }
 
-    private static void ResolveAttack(
+    private static BattleActionDefinition GetNextBattleAction(Troop troop, BattleSide side)
+    {
+        var actions = BattleActionRules.GetBattleActions(troop, side);
+        var actionIndex = troop.MaxBattleAttacks - troop.RemainingBattleAttacks;
+
+        return actions[actionIndex];
+    }
+
+    private static void ResolveAction(
         Troop attacker,
+        BattleActionDefinition action,
         BattleSide attackerSide,
         Unit defenderUnit,
         BattleSide defenderSide,
         ICollection<BattleEvent> events)
     {
-        // Targeting stays deterministic for now so the only randomness is battle setup order.
+        if (action.ActionKind == ActionKind.Heal)
+        {
+            // TODO: Resolve ally targeting from action.TargetSide and action.TargetingRuleId.
+            attacker.SpendBattleAttack();
+            events.Add(new BattleEvent(
+                $"{attacker.Name} uses {action.DisplayName}, but healing is not implemented yet. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                attacker.Name,
+                Damage: 0,
+                ActorSide: attackerSide,
+                ActorPosition: attacker.Position));
+            return;
+        }
+
+        // TODO: Resolve targets from action.TargetSide and action.TargetingRuleId.
+        // Targeting stays deterministic for now so this step only changes action data, not target selection.
         var defender = defenderUnit.LivingTroops
             .OrderBy(troop => troop.Position.Row)
             .ThenBy(troop => troop.Position.Column)
@@ -133,7 +159,7 @@ public sealed class BattleEngine
         {
             attacker.SpendBattleAttack();
             events.Add(new BattleEvent(
-                $"{attacker.Name} has no living target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                $"{attacker.Name} uses {action.DisplayName}, but has no living target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
                 attacker.Name,
                 Damage: 0,
                 ActorSide: attackerSide,
@@ -141,12 +167,13 @@ public sealed class BattleEngine
             return;
         }
 
-        var damage = Math.Max(1, attacker.Stats.Attack - defender.Stats.Defense);
+        var baseDamage = Math.Max(1, attacker.Stats.Attack - defender.Stats.Defense);
+        var damage = Math.Max(1, (int)Math.Round(baseDamage * action.Power, MidpointRounding.AwayFromZero));
         defender.TakeDamage(damage);
         attacker.SpendBattleAttack();
 
         events.Add(new BattleEvent(
-            $"{attacker.Name} hits {defender.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+            $"{attacker.Name} uses {action.DisplayName} on {defender.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
             attacker.Name,
             defender.Name,
             damage,

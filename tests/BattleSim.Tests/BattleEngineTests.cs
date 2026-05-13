@@ -82,38 +82,53 @@ public sealed class BattleEngineTests
         Assert.StartsWith("Unit order:", setupEvents[0].Description);
         Assert.StartsWith("Blue Unit troop order:", setupEvents[1].Description);
         Assert.StartsWith("Red Unit troop order:", setupEvents[2].Description);
-        Assert.StartsWith("Blue Unit attack counts:", setupEvents[3].Description);
-        Assert.StartsWith("Red Unit attack counts:", setupEvents[4].Description);
+        Assert.StartsWith("Blue Unit action counts:", setupEvents[3].Description);
+        Assert.StartsWith("Red Unit action counts:", setupEvents[4].Description);
     }
 
     [Fact]
-    public void FighterBattleAttackLimit_UsesDefinitionProfileByRelativeFormationRank()
+    public void FighterBattleActions_UseDefinitionProfileByRelativeFormationRank()
     {
         var leftBack = new Troop("Left Back Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
-        var leftMiddle = new Troop("Left Middle Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 1));
         var leftFront = new Troop("Left Front Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
 
-        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(leftBack, BattleSide.Left));
-        Assert.Equal(2, BattleAttackRules.GetBattleAttackLimit(leftMiddle, BattleSide.Left));
-        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(leftFront, BattleSide.Left));
+        Assert.Equal(new[] { "Slash", "Slash", "Slash" }, GetActionNames(leftFront, BattleSide.Left));
+        Assert.Equal(new[] { "Slash" }, GetActionNames(leftBack, BattleSide.Left));
     }
 
     [Fact]
-    public void ArcherBattleAttackLimit_UsesDefinitionProfileByRelativeFormationRank()
+    public void ArcherBattleActions_UseDefinitionProfileByRelativeFormationRank()
     {
-        var rightFront = new Troop("Right Front Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 0));
-        var rightMiddle = new Troop("Right Middle Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 1));
         var rightBack = new Troop("Right Back Archer", BuiltInTroopClasses.Archer, new GridPosition(1, 2));
 
-        Assert.Equal(1, BattleAttackRules.GetBattleAttackLimit(rightFront, BattleSide.Right));
-        Assert.Equal(2, BattleAttackRules.GetBattleAttackLimit(rightMiddle, BattleSide.Right));
-        Assert.Equal(3, BattleAttackRules.GetBattleAttackLimit(rightBack, BattleSide.Right));
+        Assert.Equal(new[] { "Bow Shot", "Bow Shot", "Bow Shot" }, GetActionNames(rightBack, BattleSide.Right));
     }
 
     [Fact]
-    public void BattleAttackRules_DoesNotContainClassSpecificSwitchLogic()
+    public void WizardBattleActions_UseDefinitionProfileByRelativeFormationRank()
     {
-        var sourcePath = FindRepoFile("src/BattleSim.Engine/BattleAttackRules.cs");
+        var rightFront = new Troop("Right Front Wizard", BuiltInTroopClasses.Wizard, new GridPosition(1, 0));
+        var rightMiddle = new Troop("Right Middle Wizard", BuiltInTroopClasses.Wizard, new GridPosition(1, 1));
+
+        Assert.Equal(new[] { "Staff Bonk" }, GetActionNames(rightFront, BattleSide.Right));
+        Assert.Equal(new[] { "Firebolt", "Firebolt", "Firebolt" }, GetActionNames(rightMiddle, BattleSide.Right));
+    }
+
+    [Fact]
+    public void RowActionProfile_PreservesActionOrdering()
+    {
+        var profile = new RowActionProfile(
+            Front: new[] { BuiltInBattleActions.Slash, BuiltInBattleActions.Firebolt, BuiltInBattleActions.BowShot },
+            Middle: Array.Empty<BattleActionDefinition>(),
+            Back: Array.Empty<BattleActionDefinition>());
+
+        Assert.Equal(new[] { "slash", "firebolt", "bow_shot" }, profile.GetActions(FormationRank.Front).Select(action => action.Id));
+    }
+
+    [Fact]
+    public void BattleActionRules_DoesNotContainClassSpecificSwitchLogic()
+    {
+        var sourcePath = FindRepoFile("src/BattleSim.Engine/BattleActionRules.cs");
         var source = File.ReadAllText(sourcePath);
 
         Assert.DoesNotContain("TroopClass.", source);
@@ -130,6 +145,7 @@ public sealed class BattleEngineTests
         var attackEvent = result.Events.Last(battleEvent => battleEvent.ActorName is not null);
         var attacker = result.State.AllTroops.Single(troop => troop.Name == attackEvent.ActorName);
 
+        Assert.Contains(" uses ", attackEvent.Description);
         Assert.Contains($"{attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.", attackEvent.Description);
         Assert.Equal(attacker.MaxBattleAttacks - 1, attacker.RemainingBattleAttacks);
     }
@@ -191,5 +207,12 @@ public sealed class BattleEngineTests
         }
 
         throw new FileNotFoundException($"Could not find {relativePath} from {AppContext.BaseDirectory}.");
+    }
+
+    private static string[] GetActionNames(Troop troop, BattleSide side)
+    {
+        return BattleActionRules.GetBattleActions(troop, side)
+            .Select(action => action.DisplayName)
+            .ToArray();
     }
 }

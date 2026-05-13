@@ -4,4 +4,4 @@ public sealed record TroopClassDefinition(
     string Id,
     string DisplayName,
     Stats BaseStats,
-    RowAttackProfile AttackProfile);
+    RowActionProfile ActionProfile);

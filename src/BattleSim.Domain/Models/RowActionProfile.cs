@@ -2,9 +2,12 @@ using BattleSim.Domain.Enums;
 
 namespace BattleSim.Domain.Models;
 
-public sealed record RowAttackProfile(int Front, int Middle, int Back)
+public sealed record RowActionProfile(
+    IReadOnlyList<BattleActionDefinition> Front,
+    IReadOnlyList<BattleActionDefinition> Middle,
+    IReadOnlyList<BattleActionDefinition> Back)
 {
-    public int GetAttackCount(FormationRank rank)
+    public IReadOnlyList<BattleActionDefinition> GetActions(FormationRank rank)
     {
         return rank switch
         {

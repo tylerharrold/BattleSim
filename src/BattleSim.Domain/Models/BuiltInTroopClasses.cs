@@ -8,25 +8,37 @@ public static class BuiltInTroopClasses
         "fighter",
         "Fighter",
         new Stats(24, 7, 3, 4),
-        new RowAttackProfile(Front: 3, Middle: 2, Back: 1));
+        new RowActionProfile(
+            Front: Repeat(BuiltInBattleActions.Slash, 3),
+            Middle: Repeat(BuiltInBattleActions.Slash, 2),
+            Back: Repeat(BuiltInBattleActions.Slash, 1)));
 
     public static TroopClassDefinition Archer { get; } = new(
         "archer",
         "Archer",
         new Stats(18, 5, 1, 6),
-        new RowAttackProfile(Front: 1, Middle: 2, Back: 3));
+        new RowActionProfile(
+            Front: Repeat(BuiltInBattleActions.BowShot, 1),
+            Middle: Repeat(BuiltInBattleActions.BowShot, 2),
+            Back: Repeat(BuiltInBattleActions.BowShot, 3)));
 
     public static TroopClassDefinition Cleric { get; } = new(
         "cleric",
         "Cleric",
         new Stats(20, 4, 2, 3),
-        new RowAttackProfile(Front: 1, Middle: 2, Back: 2));
+        new RowActionProfile(
+            Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
+            Middle: Repeat(BuiltInBattleActions.StaffBonk, 2),
+            Back: Repeat(BuiltInBattleActions.StaffBonk, 2)));
 
     public static TroopClassDefinition Wizard { get; } = new(
         "wizard",
         "Wizard",
         new Stats(16, 8, 1, 5),
-        new RowAttackProfile(Front: 1, Middle: 3, Back: 2));
+        new RowActionProfile(
+            Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
+            Middle: Repeat(BuiltInBattleActions.Firebolt, 3),
+            Back: Repeat(BuiltInBattleActions.Firebolt, 2)));
 
     public static TroopClassDefinition FromLegacyEnum(TroopClass troopClass)
     {
@@ -38,5 +50,10 @@ public static class BuiltInTroopClasses
             TroopClass.Wizard => Wizard,
             _ => throw new ArgumentOutOfRangeException(nameof(troopClass))
         };
+    }
+
+    private static IReadOnlyList<BattleActionDefinition> Repeat(BattleActionDefinition action, int count)
+    {
+        return Enumerable.Repeat(action, count).ToArray();
     }
 }

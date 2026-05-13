@@ -3,13 +3,13 @@ using BattleSim.Domain.Models;
 
 namespace BattleSim.Engine;
 
-public static class BattleAttackRules
+public static class BattleActionRules
 {
-    public static int GetBattleAttackLimit(Troop troop, BattleSide side)
+    public static IReadOnlyList<BattleActionDefinition> GetBattleActions(Troop troop, BattleSide side)
     {
         var rank = GetFormationRank(troop.Position, side);
 
-        return troop.ClassDefinition.AttackProfile.GetAttackCount(rank);
+        return troop.ClassDefinition.ActionProfile.GetActions(rank);
     }
 
     public static FormationRank GetFormationRank(GridPosition position, BattleSide side)

@@ -98,8 +98,8 @@ public sealed class BattleState
             new BattleEvent($"Unit order: {firstUnit}, then {secondUnit}."),
             new BattleEvent($"{LeftUnit.Name} troop order: {FormatTroopOrder(BattleSide.Left)}."),
             new BattleEvent($"{RightUnit.Name} troop order: {FormatTroopOrder(BattleSide.Right)}."),
-            new BattleEvent($"{LeftUnit.Name} attack counts: {FormatAttackCounts(LeftUnit)}."),
-            new BattleEvent($"{RightUnit.Name} attack counts: {FormatAttackCounts(RightUnit)}.")
+            new BattleEvent($"{LeftUnit.Name} action counts: {FormatAttackCounts(LeftUnit)}."),
+            new BattleEvent($"{RightUnit.Name} action counts: {FormatAttackCounts(RightUnit)}.")
         };
     }
 
@@ -185,7 +185,7 @@ public sealed class BattleState
     {
         foreach (var troop in unit.Troops)
         {
-            troop.SetBattleAttackLimit(BattleAttackRules.GetBattleAttackLimit(troop, side));
+            troop.SetBattleAttackLimit(BattleActionRules.GetBattleActions(troop, side).Count);
         }
     }
 }
