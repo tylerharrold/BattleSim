@@ -12,6 +12,9 @@ namespace BattleSim.App.ViewModels;
 
 public sealed partial class MainWindowViewModel : ObservableObject
 {
+    private const double ArrowHeadLength = 16;
+    private const double ArrowHeadWidth = 8;
+
     // The view model adapts engine state into bindable UI data without owning combat rules.
     private readonly BattleEngine battleEngine = new();
     private readonly Dictionary<string, IImage> portraitCache = new();
@@ -46,7 +49,21 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanRotateFormations))]
     private bool battleHasStarted;
 
+    [ObservableProperty]
+    private bool isAttackArrowVisible;
+
+    [ObservableProperty]
+    private Point attackArrowStart;
+
+    [ObservableProperty]
+    private Point attackArrowEnd;
+
+    [ObservableProperty]
+    private string attackArrowPathData = string.Empty;
+
     public bool CanRotateFormations => !BattleHasStarted;
+
+    public event Action<BattleLogEntryViewModel>? AttackArrowRequested;
 
     [RelayCommand]
     private void RotateLeftFormation()
@@ -84,6 +101,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedBattleLogEntryChanged(BattleLogEntryViewModel? value)
     {
         RefreshFromState();
+
+        if (value?.IsAttack == true)
+        {
+            AttackArrowRequested?.Invoke(value);
+            return;
+        }
+
+        HideAttackArrow();
     }
 
     private void ApplyStepResult(BattleStepResult result, bool selectLatestAttack)
@@ -109,6 +134,20 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         SelectedBattleLogEntry = selectLatestAttack ? latestAttack : null;
         RefreshFromState();
+    }
+
+    public void ShowAttackArrow(Point start, Point end)
+    {
+        AttackArrowStart = start;
+        AttackArrowEnd = end;
+        AttackArrowPathData = CreateArrowPathData(start, end);
+        IsAttackArrowVisible = true;
+    }
+
+    public void HideAttackArrow()
+    {
+        IsAttackArrowVisible = false;
+        AttackArrowPathData = string.Empty;
     }
 
     [RelayCommand]
@@ -226,5 +265,34 @@ public sealed partial class MainWindowViewModel : ObservableObject
             battleEvent.ActorPosition,
             battleEvent.TargetSide,
             battleEvent.TargetPosition);
+    }
+
+    private static string CreateArrowPathData(Point start, Point end)
+    {
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        var length = Math.Sqrt(dx * dx + dy * dy);
+
+        if (length <= 0.01)
+        {
+            return string.Empty;
+        }
+
+        var unitX = dx / length;
+        var unitY = dy / length;
+        var perpendicularX = -unitY;
+        var perpendicularY = unitX;
+
+        var leftHead = new Point(
+            end.X - unitX * ArrowHeadLength + perpendicularX * ArrowHeadWidth,
+            end.Y - unitY * ArrowHeadLength + perpendicularY * ArrowHeadWidth);
+
+        var rightHead = new Point(
+            end.X - unitX * ArrowHeadLength - perpendicularX * ArrowHeadWidth,
+            end.Y - unitY * ArrowHeadLength - perpendicularY * ArrowHeadWidth);
+
+        return string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"M {start.X:0.###},{start.Y:0.###} L {end.X:0.###},{end.Y:0.###} M {leftHead.X:0.###},{leftHead.Y:0.###} L {end.X:0.###},{end.Y:0.###} L {rightHead.X:0.###},{rightHead.Y:0.###}");
     }
 }
