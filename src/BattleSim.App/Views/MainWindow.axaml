@@ -37,7 +37,11 @@
             <DataTemplate>
               <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="132" Padding="5" Background="#F6FAFF">
                 <StackPanel Spacing="2" HorizontalAlignment="Center">
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Name}"
+                             FontSize="12"
+                             FontWeight="SemiBold"
+                             TextWrapping="NoWrap"
+                             TextTrimming="CharacterEllipsis" />
                   <Image Source="{Binding PortraitImage}"
                          IsVisible="{Binding HasPortrait}"
                          Width="38"
@@ -62,7 +66,11 @@
             <DataTemplate>
               <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="132" Padding="5" Background="#FFF7F7">
                 <StackPanel Spacing="2" HorizontalAlignment="Center">
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Name}"
+                             FontSize="12"
+                             FontWeight="SemiBold"
+                             TextWrapping="NoWrap"
+                             TextTrimming="CharacterEllipsis" />
                   <Image Source="{Binding PortraitImage}"
                          IsVisible="{Binding HasPortrait}"
                          Width="38"
