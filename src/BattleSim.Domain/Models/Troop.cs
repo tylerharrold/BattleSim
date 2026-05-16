@@ -80,6 +80,16 @@ public sealed class Troop
         CurrentHitPoints = Math.Max(0, CurrentHitPoints - amount);
     }
 
+    public void Heal(int amount)
+    {
+        if (amount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Healing cannot be negative.");
+        }
+
+        CurrentHitPoints = Math.Min(Stats.MaxHitPoints, CurrentHitPoints + amount);
+    }
+
     public Troop Clone()
     {
         return CloneAtPosition(Position);

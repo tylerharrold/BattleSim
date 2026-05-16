@@ -1,5 +1,6 @@
 using BattleSim.Domain.Models;
 using BattleSim.Domain.Enums;
+using BattleSim.Domain.Targeting;
 
 namespace BattleSim.Engine;
 
@@ -30,6 +31,7 @@ public sealed class BattleEngine
                     nextAttacker.Troop,
                     action,
                     nextState.CurrentSide,
+                    nextState.GetUnit(nextState.CurrentSide),
                     nextState.GetOpponent(nextState.CurrentSide),
                     defenderSide,
                     events);
@@ -131,16 +133,19 @@ public sealed class BattleEngine
         Troop attacker,
         BattleActionDefinition action,
         BattleSide attackerSide,
+        Unit attackerUnit,
         Unit defenderUnit,
         BattleSide defenderSide,
         ICollection<BattleEvent> events)
     {
-        if (action.ActionKind == ActionKind.Heal)
+        var targetingContext = new TargetingContext(attacker, attackerUnit, defenderUnit);
+        var targets = action.TargetingRule.SelectTargets(targetingContext, action);
+
+        if (!targets.HasTargets)
         {
-            // TODO: Resolve ally targeting from action.TargetSide and action.TargetingRuleId.
             attacker.SpendBattleAttack();
             events.Add(new BattleEvent(
-                $"{attacker.Name} uses {action.DisplayName}, but healing is not implemented yet. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                $"{attacker.Name} uses {action.DisplayName}, but has no valid target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
                 attacker.Name,
                 Damage: 0,
                 ActorSide: attackerSide,
@@ -148,39 +153,62 @@ public sealed class BattleEngine
             return;
         }
 
-        // TODO: Resolve targets from action.TargetSide and action.TargetingRuleId.
-        // Targeting stays deterministic for now so this step only changes action data, not target selection.
-        var defender = defenderUnit.LivingTroops
-            .OrderBy(troop => troop.Position.Row)
-            .ThenBy(troop => troop.Position.Column)
-            .FirstOrDefault();
-
-        if (defender is null)
-        {
-            attacker.SpendBattleAttack();
-            events.Add(new BattleEvent(
-                $"{attacker.Name} uses {action.DisplayName}, but has no living target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
-                attacker.Name,
-                Damage: 0,
-                ActorSide: attackerSide,
-                ActorPosition: attacker.Position));
-            return;
-        }
-
-        var baseDamage = Math.Max(1, attacker.Stats.Attack - defender.Stats.Defense);
-        var damage = Math.Max(1, (int)Math.Round(baseDamage * action.Power, MidpointRounding.AwayFromZero));
-        defender.TakeDamage(damage);
         attacker.SpendBattleAttack();
 
-        events.Add(new BattleEvent(
-            $"{attacker.Name} uses {action.DisplayName} on {defender.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+        foreach (var target in targets.Targets)
+        {
+            events.Add(ResolveActionAgainstTarget(
+                attacker,
+                action,
+                target,
+                attackerSide,
+                GetTargetSide(action, attackerSide, defenderSide)));
+        }
+    }
+
+    private static BattleEvent ResolveActionAgainstTarget(
+        Troop attacker,
+        BattleActionDefinition action,
+        Troop target,
+        BattleSide attackerSide,
+        BattleSide targetSide)
+    {
+        if (action.ActionKind == ActionKind.Heal)
+        {
+            var healing = Math.Max(1, (int)Math.Round(attacker.Stats.Attack * action.Power, MidpointRounding.AwayFromZero));
+            var missingHitPoints = target.Stats.MaxHitPoints - target.CurrentHitPoints;
+            var actualHealing = Math.Min(healing, missingHitPoints);
+            target.Heal(healing);
+
+            return new BattleEvent(
+                $"{attacker.Name} uses {action.DisplayName} on {target.Name} for {actualHealing} healing. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                attacker.Name,
+                target.Name,
+                Damage: 0,
+                ActorSide: attackerSide,
+                ActorPosition: attacker.Position,
+                TargetSide: targetSide,
+                TargetPosition: target.Position);
+        }
+
+        var baseDamage = Math.Max(1, attacker.Stats.Attack - target.Stats.Defense);
+        var damage = Math.Max(1, (int)Math.Round(baseDamage * action.Power, MidpointRounding.AwayFromZero));
+        target.TakeDamage(damage);
+
+        return new BattleEvent(
+            $"{attacker.Name} uses {action.DisplayName} on {target.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
             attacker.Name,
-            defender.Name,
+            target.Name,
             damage,
             attackerSide,
             attacker.Position,
-            defenderSide,
-            defender.Position));
+            targetSide,
+            target.Position);
+    }
+
+    private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)
+    {
+        return action.TargetSide == TargetSide.Ally ? attackerSide : defenderSide;
     }
 
     private static BattleState AdvanceAfterAttack(BattleState state, int completedTroopOrderIndex)

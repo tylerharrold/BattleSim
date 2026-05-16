@@ -1,4 +1,5 @@
 using BattleSim.Domain.Enums;
+using BattleSim.Domain.Targeting;
 
 namespace BattleSim.Domain.Models;
 
@@ -7,5 +8,5 @@ public sealed record BattleActionDefinition(
     string DisplayName,
     ActionKind ActionKind,
     TargetSide TargetSide,
-    string TargetingRuleId,
+    ITargetingRule TargetingRule,
     decimal Power);

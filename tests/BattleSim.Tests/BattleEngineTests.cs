@@ -1,6 +1,7 @@
 using BattleSim.Engine;
 using BattleSim.Domain.Enums;
 using BattleSim.Domain.Models;
+using BattleSim.Domain.Targeting;
 using Xunit;
 
 namespace BattleSim.Tests;
@@ -136,6 +137,72 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void BattleActionDefinition_UsesTargetingRuleObject()
+    {
+        Assert.IsType<MeleeTargetingRule>(BuiltInBattleActions.Slash.TargetingRule);
+        Assert.IsType<RangedTargetingRule>(BuiltInBattleActions.BowShot.TargetingRule);
+        Assert.IsType<MostDamagedAllyTargetingRule>(BuiltInBattleActions.Heal.TargetingRule);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_SelectsValidEnemy()
+    {
+        var context = CreateTargetingContext();
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Front", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void RangedTargetingRule_SelectsValidEnemy()
+    {
+        var context = CreateTargetingContext();
+
+        var selection = BuiltInBattleActions.BowShot.TargetingRule.SelectTargets(context, BuiltInBattleActions.BowShot);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Front", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MostDamagedAllyTargetingRule_SelectsMostDamagedLivingAlly()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
+        var lightlyDamaged = new Troop("Lightly Damaged", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var heavilyDamaged = new Troop("Heavily Damaged", BuiltInTroopClasses.Fighter, new GridPosition(2, 0));
+        lightlyDamaged.TakeDamage(2);
+        heavilyDamaged.TakeDamage(8);
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker, lightlyDamaged, heavilyDamaged }),
+            new Unit("Enemies", Array.Empty<Troop>()));
+
+        var selection = BuiltInBattleActions.Heal.TargetingRule.SelectTargets(context, BuiltInBattleActions.Heal);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Heavily Damaged", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void TargetingRule_ReturnsEmptySelectionWhenNoValidTargetsExist()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 1));
+        var defeatedEnemy = new Troop("Defeated Enemy", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        defeatedEnemy.TakeDamage(defeatedEnemy.Stats.MaxHitPoints);
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { defeatedEnemy }));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.False(selection.HasTargets);
+        Assert.Empty(selection.Targets);
+    }
+
+    [Fact]
     public void RunNextAttack_DecrementsRemainingBattleAttacksAndLogsCount()
     {
         var engine = new BattleEngine();
@@ -214,5 +281,17 @@ public sealed class BattleEngineTests
         return BattleActionRules.GetBattleActions(troop, side)
             .Select(action => action.DisplayName)
             .ToArray();
+    }
+
+    private static TargetingContext CreateTargetingContext()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 1));
+        var backEnemy = new Troop("Enemy Back", BuiltInTroopClasses.Fighter, new GridPosition(2, 2));
+        var frontEnemy = new Troop("Enemy Front", BuiltInTroopClasses.Fighter, new GridPosition(0, 1));
+
+        return new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { backEnemy, frontEnemy }));
     }
 }
