@@ -25,3 +25,6 @@ TestResults/
 
 # Avalonia generated
 *.g.cs
+
+# Local project continuity notes
+PROJECT_STATUS.txt

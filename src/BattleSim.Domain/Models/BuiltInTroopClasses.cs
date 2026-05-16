@@ -11,7 +11,8 @@ public static class BuiltInTroopClasses
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.Slash, 3),
             Middle: Repeat(BuiltInBattleActions.Slash, 2),
-            Back: Repeat(BuiltInBattleActions.Slash, 1)));
+            Back: Repeat(BuiltInBattleActions.Slash, 1)),
+        "avares://BattleSim.App/Assets/Images/Portraits/fighter.png");
 
     public static TroopClassDefinition Archer { get; } = new(
         "archer",
@@ -20,7 +21,8 @@ public static class BuiltInTroopClasses
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.BowShot, 1),
             Middle: Repeat(BuiltInBattleActions.BowShot, 2),
-            Back: Repeat(BuiltInBattleActions.BowShot, 3)));
+            Back: Repeat(BuiltInBattleActions.BowShot, 3)),
+        "avares://BattleSim.App/Assets/Images/Portraits/archer.png");
 
     public static TroopClassDefinition Cleric { get; } = new(
         "cleric",
@@ -29,7 +31,8 @@ public static class BuiltInTroopClasses
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
             Middle: Repeat(BuiltInBattleActions.StaffBonk, 2),
-            Back: Repeat(BuiltInBattleActions.StaffBonk, 2)));
+            Back: Repeat(BuiltInBattleActions.StaffBonk, 2)),
+        "avares://BattleSim.App/Assets/Images/Portraits/cleric.png");
 
     public static TroopClassDefinition Wizard { get; } = new(
         "wizard",
@@ -38,7 +41,8 @@ public static class BuiltInTroopClasses
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
             Middle: Repeat(BuiltInBattleActions.Firebolt, 3),
-            Back: Repeat(BuiltInBattleActions.Firebolt, 2)));
+            Back: Repeat(BuiltInBattleActions.Firebolt, 2)),
+        "avares://BattleSim.App/Assets/Images/Portraits/wizard.png");
 
     public static TroopClassDefinition FromLegacyEnum(TroopClass troopClass)
     {

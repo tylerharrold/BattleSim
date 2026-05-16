@@ -21,4 +21,8 @@
     <ProjectReference Include="..\BattleSim.Domain\BattleSim.Domain.csproj" />
     <ProjectReference Include="..\BattleSim.Engine\BattleSim.Engine.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\..\Assets\Images\Portraits\*.png" Link="Assets\Images\Portraits\%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

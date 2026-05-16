@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using BattleSim.Domain.Models;
 using BattleSim.Engine;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,6 +14,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     // The view model adapts engine state into bindable UI data without owning combat rules.
     private readonly BattleEngine battleEngine = new();
+    private readonly Dictionary<string, IImage> portraitCache = new();
 
     private BattleState battleState = BattleState.CreateDefault();
 
@@ -155,7 +158,36 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var borderBrush = isActor ? Brushes.Lime : isTarget ? Brushes.Yellow : Brushes.Gray;
         var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
 
-        return new GridCellViewModel(troop.Name, troop.ClassDefinition.DisplayName, hp, attacks, borderBrush, borderThickness);
+        return new GridCellViewModel(
+            troop.Name,
+            troop.ClassDefinition.DisplayName,
+            troop.ClassDefinition.PortraitAssetPath,
+            GetPortraitImage(troop.ClassDefinition.PortraitAssetPath),
+            !string.IsNullOrWhiteSpace(troop.ClassDefinition.PortraitAssetPath),
+            hp,
+            attacks,
+            borderBrush,
+            borderThickness);
+    }
+
+    private IImage? GetPortraitImage(string assetPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetPath))
+        {
+            return null;
+        }
+
+        if (portraitCache.TryGetValue(assetPath, out var cachedImage))
+        {
+            return cachedImage;
+        }
+
+        // XAML does not reliably convert bound URI strings into bitmap sources, so the App layer loads
+        // the Avalonia resource while Domain only provides a plain asset path.
+        using var stream = AssetLoader.Open(new Uri(assetPath));
+        var image = new Bitmap(stream);
+        portraitCache[assetPath] = image;
+        return image;
     }
 
     private void AddSetupEventsToLog()
