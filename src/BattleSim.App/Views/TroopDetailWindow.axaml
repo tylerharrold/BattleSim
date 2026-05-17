@@ -2,9 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="BattleSim.App.Views.TroopDetailWindow"
         Width="360"
-        Height="520"
+        Height="600"
         MinWidth="320"
-        MinHeight="480"
+        MinHeight="560"
         Title="{Binding Name}">
   <Grid RowDefinitions="Auto,*" Margin="16" RowSpacing="14">
     <StackPanel Orientation="Horizontal" Spacing="12">
@@ -19,72 +19,74 @@
       </StackPanel>
     </StackPanel>
 
-    <StackPanel Grid.Row="1" Spacing="12">
-      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
-          <TextBlock Text="Position" FontWeight="SemiBold" />
-          <TextBlock Grid.Column="1" Text="{Binding PositionLabel}" />
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Spacing="12">
+        <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+            <TextBlock Text="Position" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="{Binding PositionLabel}" />
 
-          <TextBlock Grid.Row="1" Text="Rank" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FormationRankLabel}" />
+            <TextBlock Grid.Row="1" Text="Rank" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FormationRankLabel}" />
 
-          <TextBlock Grid.Row="2" Text="HP" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding HitPointsLabel}" />
+            <TextBlock Grid.Row="2" Text="HP" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding HitPointsLabel}" />
 
-          <TextBlock Grid.Row="3" Text="Actions" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ActionCountLabel}" />
+            <TextBlock Grid.Row="3" Text="Actions" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ActionCountLabel}" />
 
-          <TextBlock Grid.Row="4" Text="Next" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding NextActionLabel}" />
-        </Grid>
-      </Border>
+            <TextBlock Grid.Row="4" Text="Next" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding NextActionLabel}" />
+          </Grid>
+        </Border>
 
-      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
-          <TextBlock Text="Max HP" FontWeight="SemiBold" />
-          <TextBlock Grid.Column="1" Text="{Binding Stats.MaxHitPoints}" />
+        <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+            <TextBlock Text="Max HP" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="{Binding Stats.MaxHitPoints}" />
 
-          <TextBlock Grid.Row="1" Text="Strength" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stats.Strength}" />
+            <TextBlock Grid.Row="1" Text="Strength" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stats.Strength}" />
 
-          <TextBlock Grid.Row="2" Text="Defense" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Stats.Defense}" />
+            <TextBlock Grid.Row="2" Text="Defense" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Stats.Defense}" />
 
-          <TextBlock Grid.Row="3" Text="Speed" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Stats.Speed}" />
+            <TextBlock Grid.Row="3" Text="Speed" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Stats.Speed}" />
 
-          <TextBlock Grid.Row="4" Text="Faith" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Stats.Faith}" />
+            <TextBlock Grid.Row="4" Text="Faith" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Stats.Faith}" />
 
-          <TextBlock Grid.Row="5" Text="Wisdom" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Stats.Wisdom}" />
+            <TextBlock Grid.Row="5" Text="Wisdom" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Stats.Wisdom}" />
 
-          <TextBlock Grid.Row="6" Text="Dexterity" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Stats.Dexterity}" />
-        </Grid>
-      </Border>
+            <TextBlock Grid.Row="6" Text="Dexterity" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Stats.Dexterity}" />
+          </Grid>
+        </Border>
 
-      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
-        <StackPanel Spacing="6">
-          <TextBlock Text="Current Row Actions" FontWeight="SemiBold" />
-          <ItemsControl ItemsSource="{Binding CurrentRowActions}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8" Margin="0,1">
-                  <TextBlock Text="{Binding Number}" Foreground="{Binding TextBrush}" />
-                  <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{Binding TextBrush}" />
-                  <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Foreground="{Binding TextBrush}" FontSize="11" />
-                </Grid>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </Border>
+        <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Current Row Actions" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding CurrentRowActions}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8" Margin="0,1">
+                    <TextBlock Text="{Binding Number}" Foreground="{Binding TextBrush}" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{Binding TextBrush}" />
+                    <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Foreground="{Binding TextBrush}" FontSize="11" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
 
-      <Button Content="Close"
-              HorizontalAlignment="Right"
-              MinWidth="80"
-              Click="OnCloseClicked" />
-    </StackPanel>
+        <Button Content="Close"
+                HorizontalAlignment="Right"
+                MinWidth="80"
+                Click="OnCloseClicked" />
+      </StackPanel>
+    </ScrollViewer>
   </Grid>
 </Window>
