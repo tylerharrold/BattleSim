@@ -7,7 +7,7 @@ public static class BuiltInTroopClasses
     public static TroopClassDefinition Fighter { get; } = new(
         "fighter",
         "Fighter",
-        new Stats(MaxHitPoints: 24, Strength: 7, Defense: 3, Speed: 4, Faith: 2, Wisdom: 2, Dexterity: 4, Luck: 5),
+        new Stats(MaxHitPoints: 48, Strength: 7, Defense: 3, Speed: 4, Faith: 2, Wisdom: 2, Dexterity: 4, Luck: 5),
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.Slash, 3),
             Middle: Repeat(BuiltInBattleActions.Slash, 2),
@@ -17,7 +17,7 @@ public static class BuiltInTroopClasses
     public static TroopClassDefinition Archer { get; } = new(
         "archer",
         "Archer",
-        new Stats(MaxHitPoints: 18, Strength: 4, Defense: 1, Speed: 6, Faith: 2, Wisdom: 3, Dexterity: 8, Luck: 8),
+        new Stats(MaxHitPoints: 40, Strength: 4, Defense: 1, Speed: 6, Faith: 2, Wisdom: 3, Dexterity: 8, Luck: 8),
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.BowShot, 1),
             Middle: Repeat(BuiltInBattleActions.BowShot, 2),
@@ -27,7 +27,7 @@ public static class BuiltInTroopClasses
     public static TroopClassDefinition Cleric { get; } = new(
         "cleric",
         "Cleric",
-        new Stats(MaxHitPoints: 20, Strength: 4, Defense: 2, Speed: 3, Faith: 8, Wisdom: 5, Dexterity: 3, Luck: 6),
+        new Stats(MaxHitPoints: 36, Strength: 4, Defense: 2, Speed: 3, Faith: 8, Wisdom: 5, Dexterity: 3, Luck: 6),
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
             Middle: Repeat(BuiltInBattleActions.Heal, 2),
@@ -37,7 +37,7 @@ public static class BuiltInTroopClasses
     public static TroopClassDefinition Wizard { get; } = new(
         "wizard",
         "Wizard",
-        new Stats(MaxHitPoints: 16, Strength: 3, Defense: 1, Speed: 5, Faith: 4, Wisdom: 8, Dexterity: 3, Luck: 4),
+        new Stats(MaxHitPoints: 32, Strength: 3, Defense: 1, Speed: 5, Faith: 4, Wisdom: 8, Dexterity: 3, Luck: 4),
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
             Middle: Repeat(BuiltInBattleActions.Firebolt, 3),

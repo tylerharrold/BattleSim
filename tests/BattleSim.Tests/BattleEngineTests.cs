@@ -295,6 +295,32 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void MostDamagedAllyTargetingRule_FallsBackToLowestMaxHitPointsWhenNoAllyIsDamaged()
+    {
+        var cleric = new Troop("Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
+        var fighter = new Troop("Fighter", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var archer = new Troop("Archer", BuiltInTroopClasses.Archer, new GridPosition(2, 0));
+        var context = new TargetingContext(
+            cleric,
+            new Unit("Allies", new[] { fighter, cleric, archer }),
+            new Unit("Enemies", Array.Empty<Troop>()));
+
+        var selection = BuiltInBattleActions.Heal.TargetingRule.SelectTargets(context, BuiltInBattleActions.Heal);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Cleric", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void BuiltInClassHitPoints_UseDoubledPools()
+    {
+        Assert.Equal(48, BuiltInTroopClasses.Fighter.BaseStats.MaxHitPoints);
+        Assert.Equal(40, BuiltInTroopClasses.Archer.BaseStats.MaxHitPoints);
+        Assert.Equal(36, BuiltInTroopClasses.Cleric.BaseStats.MaxHitPoints);
+        Assert.Equal(32, BuiltInTroopClasses.Wizard.BaseStats.MaxHitPoints);
+    }
+
+    [Fact]
     public void TargetingRule_ReturnsEmptySelectionWhenNoValidTargetsExist()
     {
         var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 1));

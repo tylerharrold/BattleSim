@@ -38,9 +38,15 @@ public sealed class MostDamagedAllyTargetingRule : ITargetingRule
 {
     public TargetSelection SelectTargets(TargetingContext context, BattleActionDefinition action)
     {
-        var target = context.Allies.LivingTroops
+        var damagedTarget = context.Allies.LivingTroops
             .Where(troop => troop.CurrentHitPoints < troop.Stats.MaxHitPoints)
             .OrderByDescending(troop => troop.Stats.MaxHitPoints - troop.CurrentHitPoints)
+            .ThenBy(troop => troop.Position.Row)
+            .ThenBy(troop => troop.Position.Column)
+            .FirstOrDefault();
+
+        var target = damagedTarget ?? context.Allies.LivingTroops
+            .OrderBy(troop => troop.Stats.MaxHitPoints)
             .ThenBy(troop => troop.Position.Row)
             .ThenBy(troop => troop.Position.Column)
             .FirstOrDefault();

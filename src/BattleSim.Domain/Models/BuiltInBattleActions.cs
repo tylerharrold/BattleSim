@@ -39,7 +39,7 @@ public static class BuiltInBattleActions
         Melee,
         BasePower: 3,
         Scaling: new ActionStatScaling(CombatStat.Strength, 0.05m, 0.08m),
-        Accuracy: 0.95m,
+        Accuracy: 0.75m,
         CanCrit: true);
 
     public static BattleActionDefinition Firebolt { get; } = new(

@@ -355,7 +355,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var isActor = SelectedBattleLogEntry?.ActorSide == side && SelectedBattleLogEntry.ActorPosition == troop.Position;
         var isTarget = SelectedBattleLogEntry?.TargetSide == side && SelectedBattleLogEntry.TargetPosition == troop.Position;
 
-        var borderBrush = isActor ? Brushes.Lime : isTarget ? Brushes.Yellow : Brushes.Gray;
+        var borderBrush = GetSelectionBorderBrush(isActor, isTarget, SelectedBattleLogEntry?.Intent);
         var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
 
         return new GridCellViewModel(
@@ -493,6 +493,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private static IBrush GetAttackArrowBrush(BattleEventIntent intent)
     {
         return intent == BattleEventIntent.Helpful ? Brushes.LimeGreen : Brushes.Red;
+    }
+
+    private static IBrush GetSelectionBorderBrush(bool isActor, bool isTarget, BattleEventIntent? intent)
+    {
+        if (isTarget && intent == BattleEventIntent.Helpful)
+        {
+            return Brushes.DeepSkyBlue;
+        }
+
+        if (isActor)
+        {
+            return Brushes.Lime;
+        }
+
+        if (isTarget)
+        {
+            return Brushes.Yellow;
+        }
+
+        return Brushes.Gray;
     }
 
     private static string CreateArrowPathData(Point start, Point end)

@@ -32,6 +32,12 @@ public sealed partial class MainWindow : Window
 
         var requestVersion = ++arrowRequestVersion;
 
+        if (attack.ActorSide == attack.TargetSide && attack.ActorPosition == attack.TargetPosition)
+        {
+            viewModel.HideAttackArrow();
+            return;
+        }
+
         // Let the refreshed grid measure before translating formation cells into overlay coordinates.
         await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Render);
 
