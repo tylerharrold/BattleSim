@@ -9,4 +9,6 @@ public sealed record BattleActionDefinition(
     ActionKind ActionKind,
     TargetSide TargetSide,
     ITargetingRule TargetingRule,
-    decimal Power);
+    int BasePower,
+    ActionStatScaling Scaling,
+    decimal Accuracy);

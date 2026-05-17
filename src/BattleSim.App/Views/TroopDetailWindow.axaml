@@ -2,9 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="BattleSim.App.Views.TroopDetailWindow"
         Width="360"
-        Height="460"
+        Height="520"
         MinWidth="320"
-        MinHeight="420"
+        MinHeight="480"
         Title="{Binding Name}">
   <Grid RowDefinitions="Auto,*" Margin="16" RowSpacing="14">
     <StackPanel Orientation="Horizontal" Spacing="12">
@@ -40,18 +40,27 @@
       </Border>
 
       <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
-        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
           <TextBlock Text="Max HP" FontWeight="SemiBold" />
           <TextBlock Grid.Column="1" Text="{Binding Stats.MaxHitPoints}" />
 
-          <TextBlock Grid.Row="1" Text="Attack" FontWeight="SemiBold" />
-          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stats.Attack}" />
+          <TextBlock Grid.Row="1" Text="Strength" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stats.Strength}" />
 
           <TextBlock Grid.Row="2" Text="Defense" FontWeight="SemiBold" />
           <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Stats.Defense}" />
 
           <TextBlock Grid.Row="3" Text="Speed" FontWeight="SemiBold" />
           <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Stats.Speed}" />
+
+          <TextBlock Grid.Row="4" Text="Faith" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Stats.Faith}" />
+
+          <TextBlock Grid.Row="5" Text="Wisdom" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Stats.Wisdom}" />
+
+          <TextBlock Grid.Row="6" Text="Dexterity" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Stats.Dexterity}" />
         </Grid>
       </Border>
 

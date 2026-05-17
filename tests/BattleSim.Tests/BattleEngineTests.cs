@@ -157,6 +157,35 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void BuiltInActions_ScaleFromExpectedStats()
+    {
+        Assert.Equal(CombatStat.Strength, BuiltInBattleActions.Slash.Scaling.Stat);
+        Assert.Equal(CombatStat.Dexterity, BuiltInBattleActions.BowShot.Scaling.Stat);
+        Assert.Equal(CombatStat.Strength, BuiltInBattleActions.StaffBonk.Scaling.Stat);
+        Assert.Equal(CombatStat.Wisdom, BuiltInBattleActions.Firebolt.Scaling.Stat);
+        Assert.Equal(CombatStat.Faith, BuiltInBattleActions.Heal.Scaling.Stat);
+    }
+
+    [Fact]
+    public void ActionStatScaling_RollsWithinConfiguredStatBasedRange()
+    {
+        var scaling = new ActionStatScaling(CombatStat.Wisdom, 0.10m, 0.20m);
+
+        var multiplier = scaling.RollMultiplier(statValue: 5, random: new Random(1));
+
+        Assert.InRange(multiplier, 1.50m, 2.00m);
+    }
+
+    [Fact]
+    public void BuiltInActions_ExposeAccuracyForFutureHitRolls()
+    {
+        Assert.InRange(BuiltInBattleActions.Slash.Accuracy, 0m, 1m);
+        Assert.InRange(BuiltInBattleActions.BowShot.Accuracy, 0m, 1m);
+        Assert.InRange(BuiltInBattleActions.Firebolt.Accuracy, 0m, 1m);
+        Assert.Equal(1.0m, BuiltInBattleActions.Heal.Accuracy);
+    }
+
+    [Fact]
     public void MeleeTargetingRule_SelectsValidEnemy()
     {
         var context = CreateTargetingContext();
@@ -232,23 +261,28 @@ public sealed class BattleEngineTests
     [Fact]
     public void HealingAction_ProducesHelpfulBattleEventIntent()
     {
-        var engine = new BattleEngine();
-        var state = BattleState.CreateDefault(seed: 1);
+        var engine = new BattleEngine(new Random(1));
+        var cleric = new Troop("Blue Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
+        var fighter = new Troop("Blue Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
+        cleric.SetBattleAttackLimit(2);
+        fighter.SetBattleAttackLimit(1);
+        fighter.TakeDamage(8);
+        var state = new BattleState(
+            new Unit("Blue Unit", new[] { cleric, fighter }),
+            new Unit("Red Unit", Array.Empty<Troop>()),
+            new BattlePlan(
+                new[] { BattleSide.Left },
+                new Dictionary<BattleSide, IReadOnlyList<string>>
+                {
+                    [BattleSide.Left] = new[] { cleric.Name },
+                    [BattleSide.Right] = Array.Empty<string>()
+                }));
 
-        while (!state.IsComplete)
-        {
-            var result = engine.RunNextAttack(state);
-            state = result.State;
+        var result = engine.RunNextAttack(state);
+        var healEvent = result.Events.Single(battleEvent => battleEvent.Description.Contains(" uses Heal "));
 
-            var healEvent = result.Events.FirstOrDefault(battleEvent => battleEvent.Description.Contains(" uses Heal "));
-            if (healEvent is not null)
-            {
-                Assert.Equal(BattleEventIntent.Helpful, healEvent.Intent);
-                return;
-            }
-        }
-
-        Assert.Fail("Expected the default battle to produce a Heal event.");
+        Assert.Equal(BattleEventIntent.Helpful, healEvent.Intent);
+        Assert.Equal("Blue Fighter", healEvent.TargetName);
     }
 
     [Fact]

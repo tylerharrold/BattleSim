@@ -6,6 +6,18 @@ namespace BattleSim.Engine;
 
 public sealed class BattleEngine
 {
+    private readonly Random random;
+
+    public BattleEngine()
+        : this(Random.Shared)
+    {
+    }
+
+    public BattleEngine(Random random)
+    {
+        this.random = random;
+    }
+
     public BattleStepResult RunNextAttack(BattleState state)
     {
         // The engine is the only place that mutates battle progress; UI code receives a result to render.
@@ -129,7 +141,7 @@ public sealed class BattleEngine
         return actions[actionIndex];
     }
 
-    private static void ResolveAction(
+    private void ResolveAction(
         Troop attacker,
         BattleActionDefinition action,
         BattleSide attackerSide,
@@ -167,7 +179,7 @@ public sealed class BattleEngine
         }
     }
 
-    private static BattleEvent ResolveActionAgainstTarget(
+    private BattleEvent ResolveActionAgainstTarget(
         Troop attacker,
         BattleActionDefinition action,
         Troop target,
@@ -176,7 +188,7 @@ public sealed class BattleEngine
     {
         if (action.ActionKind == ActionKind.Heal)
         {
-            var healing = Math.Max(1, (int)Math.Round(attacker.Stats.Attack * action.Power, MidpointRounding.AwayFromZero));
+            var healing = CalculateActionAmount(attacker, action, target, appliesDefense: false);
             var missingHitPoints = target.Stats.MaxHitPoints - target.CurrentHitPoints;
             var actualHealing = Math.Min(healing, missingHitPoints);
             target.Heal(healing);
@@ -193,8 +205,7 @@ public sealed class BattleEngine
                 Intent: GetEventIntent(action));
         }
 
-        var baseDamage = Math.Max(1, attacker.Stats.Attack - target.Stats.Defense);
-        var damage = Math.Max(1, (int)Math.Round(baseDamage * action.Power, MidpointRounding.AwayFromZero));
+        var damage = CalculateActionAmount(attacker, action, target, appliesDefense: true);
         target.TakeDamage(damage);
 
         return new BattleEvent(
@@ -207,6 +218,30 @@ public sealed class BattleEngine
             targetSide,
             target.Position,
             GetEventIntent(action));
+    }
+
+    private int CalculateActionAmount(Troop attacker, BattleActionDefinition action, Troop target, bool appliesDefense)
+    {
+        // Accuracy is stored on the action for the next rules pass; this prototype still assumes actions land.
+        var scalingStat = GetScalingStat(attacker.Stats, action.Scaling.Stat);
+        var multiplier = action.Scaling.RollMultiplier(scalingStat, random);
+        var scaledAmount = Math.Max(1, (int)Math.Round(action.BasePower * multiplier, MidpointRounding.AwayFromZero));
+
+        return appliesDefense
+            ? Math.Max(1, scaledAmount - target.Stats.Defense)
+            : scaledAmount;
+    }
+
+    private static int GetScalingStat(Stats stats, CombatStat stat)
+    {
+        return stat switch
+        {
+            CombatStat.Strength => stats.Strength,
+            CombatStat.Faith => stats.Faith,
+            CombatStat.Wisdom => stats.Wisdom,
+            CombatStat.Dexterity => stats.Dexterity,
+            _ => throw new ArgumentOutOfRangeException(nameof(stat), stat, null)
+        };
     }
 
     private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)

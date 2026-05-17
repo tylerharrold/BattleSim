@@ -15,7 +15,9 @@ public static class BuiltInBattleActions
         ActionKind.PhysicalDamage,
         TargetSide.Enemy,
         Melee,
-        1.0m);
+        BasePower: 5,
+        Scaling: new ActionStatScaling(CombatStat.Strength, 0.08m, 0.12m),
+        Accuracy: 0.95m);
 
     public static BattleActionDefinition BowShot { get; } = new(
         "bow_shot",
@@ -23,7 +25,9 @@ public static class BuiltInBattleActions
         ActionKind.PhysicalDamage,
         TargetSide.Enemy,
         Ranged,
-        1.0m);
+        BasePower: 4,
+        Scaling: new ActionStatScaling(CombatStat.Dexterity, 0.08m, 0.12m),
+        Accuracy: 0.9m);
 
     public static BattleActionDefinition StaffBonk { get; } = new(
         "staff_bonk",
@@ -31,7 +35,9 @@ public static class BuiltInBattleActions
         ActionKind.PhysicalDamage,
         TargetSide.Enemy,
         Melee,
-        0.5m);
+        BasePower: 3,
+        Scaling: new ActionStatScaling(CombatStat.Strength, 0.05m, 0.08m),
+        Accuracy: 0.95m);
 
     public static BattleActionDefinition Firebolt { get; } = new(
         "firebolt",
@@ -39,7 +45,9 @@ public static class BuiltInBattleActions
         ActionKind.MagicalDamage,
         TargetSide.Enemy,
         Ranged,
-        1.0m);
+        BasePower: 5,
+        Scaling: new ActionStatScaling(CombatStat.Wisdom, 0.0875m, 0.125m),
+        Accuracy: 0.85m);
 
     public static BattleActionDefinition Heal { get; } = new(
         "heal",
@@ -47,5 +55,7 @@ public static class BuiltInBattleActions
         ActionKind.Heal,
         TargetSide.Ally,
         MostDamagedAlly,
-        1.0m);
+        BasePower: 4,
+        Scaling: new ActionStatScaling(CombatStat.Faith, 0.08m, 0.12m),
+        Accuracy: 1.0m);
 }
