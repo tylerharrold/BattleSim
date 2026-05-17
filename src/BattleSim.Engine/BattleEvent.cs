@@ -10,4 +10,5 @@ public sealed record BattleEvent(
     BattleSide? ActorSide = null,
     GridPosition? ActorPosition = null,
     BattleSide? TargetSide = null,
-    GridPosition? TargetPosition = null);
+    GridPosition? TargetPosition = null,
+    BattleEventIntent Intent = BattleEventIntent.Neutral);

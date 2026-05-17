@@ -61,6 +61,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string attackArrowPathData = string.Empty;
 
+    [ObservableProperty]
+    private IBrush attackArrowBrush = Brushes.Red;
+
     public bool CanRotateFormations => !BattleHasStarted;
 
     public event Action<BattleLogEntryViewModel>? AttackArrowRequested;
@@ -136,11 +139,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         RefreshFromState();
     }
 
-    public void ShowAttackArrow(Point start, Point end)
+    public void ShowAttackArrow(Point start, Point end, BattleEventIntent intent)
     {
         AttackArrowStart = start;
         AttackArrowEnd = end;
         AttackArrowPathData = CreateArrowPathData(start, end);
+        AttackArrowBrush = GetAttackArrowBrush(intent);
         IsAttackArrowVisible = true;
     }
 
@@ -264,7 +268,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
             battleEvent.ActorSide,
             battleEvent.ActorPosition,
             battleEvent.TargetSide,
-            battleEvent.TargetPosition);
+            battleEvent.TargetPosition,
+            battleEvent.Intent);
+    }
+
+    private static IBrush GetAttackArrowBrush(BattleEventIntent intent)
+    {
+        return intent == BattleEventIntent.Helpful ? Brushes.LimeGreen : Brushes.Red;
     }
 
     private static string CreateArrowPathData(Point start, Point end)

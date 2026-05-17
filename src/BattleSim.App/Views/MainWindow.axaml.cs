@@ -41,7 +41,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        viewModel.ShowAttackArrow(start, end);
+        viewModel.ShowAttackArrow(start, end, attack.Intent);
     }
 
     private bool TryGetCellCenter(BattleSide side, GridPosition position, out Point center)

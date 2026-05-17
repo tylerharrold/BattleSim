@@ -89,7 +89,7 @@
       <Canvas IsHitTestVisible="False" ClipToBounds="False">
         <Path Data="{Binding AttackArrowPathData}"
               IsVisible="{Binding IsAttackArrowVisible}"
-              Stroke="#FF2A2A"
+              Stroke="{Binding AttackArrowBrush}"
               StrokeThickness="5"
               StrokeLineCap="Round"
               StrokeJoin="Round" />

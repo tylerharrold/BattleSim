@@ -230,6 +230,28 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void HealingAction_ProducesHelpfulBattleEventIntent()
+    {
+        var engine = new BattleEngine();
+        var state = BattleState.CreateDefault(seed: 1);
+
+        while (!state.IsComplete)
+        {
+            var result = engine.RunNextAttack(state);
+            state = result.State;
+
+            var healEvent = result.Events.FirstOrDefault(battleEvent => battleEvent.Description.Contains(" uses Heal "));
+            if (healEvent is not null)
+            {
+                Assert.Equal(BattleEventIntent.Helpful, healEvent.Intent);
+                return;
+            }
+        }
+
+        Assert.Fail("Expected the default battle to produce a Heal event.");
+    }
+
+    [Fact]
     public void BattleCompletesWhenEveryLivingTroopExhaustsBattleAttacks()
     {
         var engine = new BattleEngine();

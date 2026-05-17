@@ -149,7 +149,8 @@ public sealed class BattleEngine
                 attacker.Name,
                 Damage: 0,
                 ActorSide: attackerSide,
-                ActorPosition: attacker.Position));
+                ActorPosition: attacker.Position,
+                Intent: GetEventIntent(action)));
             return;
         }
 
@@ -188,7 +189,8 @@ public sealed class BattleEngine
                 ActorSide: attackerSide,
                 ActorPosition: attacker.Position,
                 TargetSide: targetSide,
-                TargetPosition: target.Position);
+                TargetPosition: target.Position,
+                Intent: GetEventIntent(action));
         }
 
         var baseDamage = Math.Max(1, attacker.Stats.Attack - target.Stats.Defense);
@@ -203,12 +205,20 @@ public sealed class BattleEngine
             attackerSide,
             attacker.Position,
             targetSide,
-            target.Position);
+            target.Position,
+            GetEventIntent(action));
     }
 
     private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)
     {
         return action.TargetSide == TargetSide.Ally ? attackerSide : defenderSide;
+    }
+
+    private static BattleEventIntent GetEventIntent(BattleActionDefinition action)
+    {
+        return action.ActionKind == ActionKind.Heal
+            ? BattleEventIntent.Helpful
+            : BattleEventIntent.Harmful;
     }
 
     private static BattleState AdvanceAfterAttack(BattleState state, int completedTroopOrderIndex)
