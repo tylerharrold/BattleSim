@@ -116,6 +116,18 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void ClericBattleActions_UseStaffBonkOnlyFromFrontRowOtherwiseHeal()
+    {
+        var leftFront = new Troop("Left Front Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 2));
+        var leftMiddle = new Troop("Left Middle Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
+        var leftBack = new Troop("Left Back Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 0));
+
+        Assert.Equal(new[] { "Staff Bonk" }, GetActionNames(leftFront, BattleSide.Left));
+        Assert.Equal(new[] { "Heal", "Heal" }, GetActionNames(leftMiddle, BattleSide.Left));
+        Assert.Equal(new[] { "Heal", "Heal" }, GetActionNames(leftBack, BattleSide.Left));
+    }
+
+    [Fact]
     public void RowActionProfile_PreservesActionOrdering()
     {
         var profile = new RowActionProfile(

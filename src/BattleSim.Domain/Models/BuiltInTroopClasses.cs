@@ -30,8 +30,8 @@ public static class BuiltInTroopClasses
         new Stats(20, 4, 2, 3),
         new RowActionProfile(
             Front: Repeat(BuiltInBattleActions.StaffBonk, 1),
-            Middle: Repeat(BuiltInBattleActions.StaffBonk, 2),
-            Back: Repeat(BuiltInBattleActions.StaffBonk, 2)),
+            Middle: Repeat(BuiltInBattleActions.Heal, 2),
+            Back: Repeat(BuiltInBattleActions.Heal, 2)),
         "avares://BattleSim.App/Assets/Images/Portraits/cleric.png");
 
     public static TroopClassDefinition Wizard { get; } = new(
