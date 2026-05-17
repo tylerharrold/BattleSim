@@ -35,8 +35,15 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="132" Padding="5" Background="#F6FAFF">
-                <StackPanel Spacing="2" HorizontalAlignment="Center">
+              <Border BorderBrush="{Binding BorderBrush}"
+                      BorderThickness="{Binding BorderThickness}"
+                      MinHeight="132"
+                      Padding="5"
+                      Background="{Binding BackgroundBrush}"
+                      PointerPressed="OnGridCellPointerPressed"
+                      PointerMoved="OnGridCellPointerMoved"
+                      PointerReleased="OnGridCellPointerReleased">
+                <StackPanel Spacing="2" HorizontalAlignment="Center" IsVisible="{Binding HasTroop}">
                   <TextBlock Text="{Binding Name}"
                              FontSize="12"
                              FontWeight="SemiBold"
@@ -64,8 +71,15 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="{Binding BorderBrush}" BorderThickness="{Binding BorderThickness}" MinHeight="132" Padding="5" Background="#FFF7F7">
-                <StackPanel Spacing="2" HorizontalAlignment="Center">
+              <Border BorderBrush="{Binding BorderBrush}"
+                      BorderThickness="{Binding BorderThickness}"
+                      MinHeight="132"
+                      Padding="5"
+                      Background="{Binding BackgroundBrush}"
+                      PointerPressed="OnGridCellPointerPressed"
+                      PointerMoved="OnGridCellPointerMoved"
+                      PointerReleased="OnGridCellPointerReleased">
+                <StackPanel Spacing="2" HorizontalAlignment="Center" IsVisible="{Binding HasTroop}">
                   <TextBlock Text="{Binding Name}"
                              FontSize="12"
                              FontWeight="SemiBold"
@@ -93,6 +107,13 @@
               StrokeThickness="5"
               StrokeLineCap="Round"
               StrokeJoin="Round" />
+        <Image Source="{Binding DraggedPortraitImage}"
+               IsVisible="{Binding IsDraggingTroop}"
+               Width="48"
+               Height="48"
+               Stretch="Uniform"
+               Canvas.Left="{Binding DraggedPortraitLeft}"
+               Canvas.Top="{Binding DraggedPortraitTop}" />
       </Canvas>
     </Grid>
 

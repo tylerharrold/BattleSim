@@ -88,6 +88,44 @@ public sealed class BattleState
             : new BattleState(LeftUnit, rotatedUnit, Plan);
     }
 
+    public BattleState MoveTroop(BattleSide side, string troopName, GridPosition destination)
+    {
+        if (HasBattleStarted)
+        {
+            throw new InvalidOperationException("Troops can only be moved before battle starts.");
+        }
+
+        if (!destination.IsInFormation)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destination), "Troop positions must fit inside a 3x3 formation.");
+        }
+
+        var unit = GetUnit(side);
+        var troop = unit.Troops.FirstOrDefault(candidate => candidate.Name == troopName)
+            ?? throw new ArgumentException($"Could not find troop '{troopName}'.", nameof(troopName));
+
+        if (troop.Position == destination)
+        {
+            return this;
+        }
+
+        if (unit.Troops.Any(candidate => candidate.Position == destination))
+        {
+            throw new InvalidOperationException("Troops can only move into empty formation slots.");
+        }
+
+        var movedUnit = new Unit(
+            unit.Name,
+            unit.Troops.Select(candidate =>
+                candidate.Name == troopName ? candidate.CloneAtPosition(destination) : candidate.Clone()));
+
+        ApplyBattleAttackLimits(movedUnit, side);
+
+        return side == BattleSide.Left
+            ? new BattleState(movedUnit, RightUnit, Plan)
+            : new BattleState(LeftUnit, movedUnit, Plan);
+    }
+
     public IReadOnlyList<BattleEvent> CreateSetupEvents()
     {
         var firstUnit = GetUnit(Plan.UnitOrder[0]).Name;

@@ -14,10 +14,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
 {
     private const double ArrowHeadLength = 16;
     private const double ArrowHeadWidth = 8;
+    private static readonly IBrush LeftCellBackground = Brush.Parse("#F6FAFF");
+    private static readonly IBrush RightCellBackground = Brush.Parse("#FFF7F7");
+    private static readonly IBrush LegalDropBackground = Brush.Parse("#BFE3FF");
+    private static readonly IBrush IllegalDropBackground = Brush.Parse("#FFD0D0");
 
     // The view model adapts engine state into bindable UI data without owning combat rules.
     private readonly BattleEngine battleEngine = new();
     private readonly Dictionary<string, IImage> portraitCache = new();
+    private DraggedTroop? draggedTroop;
+    private DropPreview? dropPreview;
 
     private BattleState battleState = BattleState.CreateDefault();
 
@@ -63,6 +69,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private IBrush attackArrowBrush = Brushes.Red;
+
+    [ObservableProperty]
+    private bool isDraggingTroop;
+
+    [ObservableProperty]
+    private IImage? draggedPortraitImage;
+
+    [ObservableProperty]
+    private double draggedPortraitLeft;
+
+    [ObservableProperty]
+    private double draggedPortraitTop;
 
     public bool CanRotateFormations => !BattleHasStarted;
 
@@ -154,11 +172,75 @@ public sealed partial class MainWindowViewModel : ObservableObject
         AttackArrowPathData = string.Empty;
     }
 
+    public bool CanBeginTroopDrag(GridCellViewModel cell)
+    {
+        return CanRotateFormations && cell.HasTroop;
+    }
+
+    public void BeginTroopDrag(GridCellViewModel cell, Point pointerPosition)
+    {
+        if (!CanBeginTroopDrag(cell))
+        {
+            return;
+        }
+
+        SelectedBattleLogEntry = null;
+        draggedTroop = new DraggedTroop(cell.Side, cell.Position, cell.Name, cell.PortraitImage);
+        IsDraggingTroop = true;
+        DraggedPortraitImage = cell.PortraitImage;
+        UpdateDraggedPortraitPosition(pointerPosition);
+        RefreshFromState();
+    }
+
+    public void UpdateTroopDrag(Point pointerPosition, BattleSide? hoverSide, GridPosition? hoverPosition)
+    {
+        if (!IsDraggingTroop)
+        {
+            return;
+        }
+
+        UpdateDraggedPortraitPosition(pointerPosition);
+        dropPreview = hoverSide.HasValue && hoverPosition.HasValue
+            ? new DropPreview(hoverSide.Value, hoverPosition.Value, IsLegalDropTarget(hoverSide.Value, hoverPosition.Value))
+            : null;
+        RefreshFromState();
+    }
+
+    public void CompleteTroopDrag(BattleSide? targetSide, GridPosition? targetPosition)
+    {
+        if (draggedTroop is null)
+        {
+            ClearTroopDrag();
+            return;
+        }
+
+        var movedTroopName = draggedTroop.Name;
+        var movedSide = draggedTroop.Side;
+
+        if (targetSide.HasValue &&
+            targetPosition.HasValue &&
+            IsLegalDropTarget(targetSide.Value, targetPosition.Value))
+        {
+            battleState = battleState.MoveTroop(movedSide, movedTroopName, targetPosition.Value);
+            RebuildSetupLog($"{movedTroopName} moved.");
+        }
+
+        ClearTroopDrag();
+        RefreshFromState();
+    }
+
+    public void CancelTroopDrag()
+    {
+        ClearTroopDrag();
+        RefreshFromState();
+    }
+
     [RelayCommand]
     private void ResetBattle()
     {
         battleState = BattleState.CreateDefault();
         BattleHasStarted = false;
+        ClearTroopDrag();
         SelectedBattleLogEntry = null;
         RebuildSetupLog("Battle reset.");
         RefreshFromState();
@@ -185,16 +267,30 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 var troop = unit.Troops.FirstOrDefault(candidate =>
                     candidate.Position.Row == row && candidate.Position.Column == column);
 
-                target.Add(troop is null ? GridCellViewModel.Empty : ToCell(troop, unit));
+                var side = unit == battleState.LeftUnit ? BattleSide.Left : BattleSide.Right;
+                var position = new GridPosition(row, column);
+
+                target.Add(troop is null
+                    ? ToEmptyCell(side, position)
+                    : ToCell(troop, unit));
             }
         }
     }
 
     private GridCellViewModel ToCell(Troop troop, Unit unit)
     {
+        var side = unit == battleState.LeftUnit ? BattleSide.Left : BattleSide.Right;
+        var isDraggedSource = draggedTroop?.Side == side &&
+            draggedTroop.Position == troop.Position &&
+            draggedTroop.Name == troop.Name;
+
+        if (isDraggedSource)
+        {
+            return ToEmptyCell(side, troop.Position);
+        }
+
         var hp = $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP";
         var attacks = $"{troop.RemainingBattleAttacks}/{troop.MaxBattleAttacks} attacks";
-        var side = unit == battleState.LeftUnit ? BattleSide.Left : BattleSide.Right;
         var isActor = SelectedBattleLogEntry?.ActorSide == side && SelectedBattleLogEntry.ActorPosition == troop.Position;
         var isTarget = SelectedBattleLogEntry?.TargetSide == side && SelectedBattleLogEntry.TargetPosition == troop.Position;
 
@@ -202,6 +298,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var borderThickness = new Thickness(isActor || isTarget ? 4 : 1);
 
         return new GridCellViewModel(
+            side,
+            troop.Position,
+            true,
             troop.Name,
             troop.ClassDefinition.DisplayName,
             troop.ClassDefinition.PortraitAssetPath,
@@ -209,8 +308,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
             !string.IsNullOrWhiteSpace(troop.ClassDefinition.PortraitAssetPath),
             hp,
             attacks,
+            GetCellBackground(side, troop.Position),
             borderBrush,
             borderThickness);
+    }
+
+    private GridCellViewModel ToEmptyCell(BattleSide side, GridPosition position)
+    {
+        return new GridCellViewModel(
+            side,
+            position,
+            false,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            null,
+            false,
+            string.Empty,
+            string.Empty,
+            GetCellBackground(side, position),
+            Brushes.Gray,
+            new Thickness(1));
     }
 
     private IImage? GetPortraitImage(string assetPath)
@@ -256,9 +374,47 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         battleState = battleState.RotateFormationClockwise(side);
+        ClearTroopDrag();
         SelectedBattleLogEntry = null;
         RebuildSetupLog(logLine);
         RefreshFromState();
+    }
+
+    private void UpdateDraggedPortraitPosition(Point pointerPosition)
+    {
+        DraggedPortraitLeft = pointerPosition.X - 24;
+        DraggedPortraitTop = pointerPosition.Y - 24;
+    }
+
+    private void ClearTroopDrag()
+    {
+        draggedTroop = null;
+        dropPreview = null;
+        IsDraggingTroop = false;
+        DraggedPortraitImage = null;
+    }
+
+    private bool IsLegalDropTarget(BattleSide side, GridPosition position)
+    {
+        if (draggedTroop is null ||
+            !CanRotateFormations ||
+            side != draggedTroop.Side ||
+            position == draggedTroop.Position)
+        {
+            return false;
+        }
+
+        return !battleState.GetUnit(side).Troops.Any(troop => troop.Position == position);
+    }
+
+    private IBrush GetCellBackground(BattleSide side, GridPosition position)
+    {
+        if (dropPreview is not null && dropPreview.Side == side && dropPreview.Position == position)
+        {
+            return dropPreview.IsLegal ? LegalDropBackground : IllegalDropBackground;
+        }
+
+        return side == BattleSide.Left ? LeftCellBackground : RightCellBackground;
     }
 
     private static BattleLogEntryViewModel ToLogEntry(BattleEvent battleEvent)
@@ -305,4 +461,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             System.Globalization.CultureInfo.InvariantCulture,
             $"M {start.X:0.###},{start.Y:0.###} L {end.X:0.###},{end.Y:0.###} M {leftHead.X:0.###},{leftHead.Y:0.###} L {end.X:0.###},{end.Y:0.###} L {rightHead.X:0.###},{rightHead.Y:0.###}");
     }
+
+    private sealed record DraggedTroop(BattleSide Side, GridPosition Position, string Name, IImage? PortraitImage);
+
+    private sealed record DropPreview(BattleSide Side, GridPosition Position, bool IsLegal);
 }

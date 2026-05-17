@@ -291,6 +291,38 @@ public sealed class BattleEngineTests
         Assert.Throws<InvalidOperationException>(() => state.RotateFormationClockwise(BattleSide.Left));
     }
 
+    [Fact]
+    public void MoveTroop_BeforeBattleStartMovesToEmptyOwnSlotAndRecalculatesActions()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+
+        var movedState = state.MoveTroop(BattleSide.Left, "Blue Fighter", new GridPosition(1, 2));
+        var movedFighter = movedState.LeftUnit.Troops.Single(troop => troop.Name == "Blue Fighter");
+
+        Assert.Equal(new GridPosition(1, 2), movedFighter.Position);
+        Assert.Equal(3, movedFighter.MaxBattleAttacks);
+        Assert.Equal(3, movedFighter.RemainingBattleAttacks);
+    }
+
+    [Fact]
+    public void MoveTroop_BeforeBattleStartRequiresEmptySlot()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            state.MoveTroop(BattleSide.Left, "Blue Fighter", new GridPosition(0, 1)));
+    }
+
+    [Fact]
+    public void MoveTroop_IsBlockedAfterBattleStarts()
+    {
+        var engine = new BattleEngine();
+        var state = engine.RunNextAttack(BattleState.CreateDefault(seed: 1)).State;
+
+        Assert.Throws<InvalidOperationException>(() =>
+            state.MoveTroop(BattleSide.Left, "Blue Fighter", new GridPosition(1, 2)));
+    }
+
     private static string FindRepoFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
