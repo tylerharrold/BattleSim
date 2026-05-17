@@ -314,6 +314,16 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void MoveTroop_ToCurrentSlotIsAllowedAsNoOp()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+
+        var unchangedState = state.MoveTroop(BattleSide.Left, "Blue Fighter", new GridPosition(1, 0));
+
+        Assert.Same(state, unchangedState);
+    }
+
+    [Fact]
     public void MoveTroop_IsBlockedAfterBattleStarts()
     {
         var engine = new BattleEngine();

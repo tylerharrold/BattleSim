@@ -177,6 +177,44 @@ public sealed partial class MainWindowViewModel : ObservableObject
         return CanRotateFormations && cell.HasTroop;
     }
 
+    public bool CanShowTroopDetails(GridCellViewModel cell)
+    {
+        return BattleHasStarted && cell.HasTroop && !IsDraggingTroop;
+    }
+
+    public TroopDetailViewModel? CreateTroopDetail(GridCellViewModel cell)
+    {
+        if (!CanShowTroopDetails(cell))
+        {
+            return null;
+        }
+
+        var troop = battleState.GetUnit(cell.Side).Troops.FirstOrDefault(candidate => candidate.Position == cell.Position);
+        if (troop is null)
+        {
+            return null;
+        }
+
+        var actions = BattleActionRules.GetBattleActions(troop, cell.Side);
+        var usedActionCount = troop.MaxBattleAttacks - troop.RemainingBattleAttacks;
+        var nextAction = !troop.IsDefeated && troop.RemainingBattleAttacks > 0 && usedActionCount < actions.Count
+            ? actions[usedActionCount].DisplayName
+            : "None";
+
+        return new TroopDetailViewModel(
+            troop.Name,
+            troop.ClassDefinition.DisplayName,
+            GetPortraitImage(troop.ClassDefinition.PortraitAssetPath),
+            cell.Side == BattleSide.Left ? "Blue Unit" : "Red Unit",
+            $"Row {troop.Position.Row + 1}, Column {troop.Position.Column + 1}",
+            BattleActionRules.GetFormationRank(troop.Position, cell.Side).ToString(),
+            $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP",
+            $"{troop.RemainingBattleAttacks}/{troop.MaxBattleAttacks} attacks left",
+            nextAction,
+            string.Join(", ", actions.Select(action => action.DisplayName)),
+            troop.Stats);
+    }
+
     public void BeginTroopDrag(GridCellViewModel cell, Point pointerPosition)
     {
         if (!CanBeginTroopDrag(cell))
@@ -216,13 +254,29 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         var movedTroopName = draggedTroop.Name;
         var movedSide = draggedTroop.Side;
+        var destinationSide = targetSide;
+        var destinationPosition = targetPosition;
 
-        if (targetSide.HasValue &&
-            targetPosition.HasValue &&
-            IsLegalDropTarget(targetSide.Value, targetPosition.Value))
+        // Pointer release can occasionally land just outside the rendered slot after the hover preview
+        // was already valid. Keep the last legal preview as a forgiving drop target.
+        if ((!destinationSide.HasValue ||
+             !destinationPosition.HasValue ||
+             !IsLegalDropTarget(destinationSide.Value, destinationPosition.Value)) &&
+            dropPreview?.IsLegal == true)
         {
-            battleState = battleState.MoveTroop(movedSide, movedTroopName, targetPosition.Value);
-            RebuildSetupLog($"{movedTroopName} moved.");
+            destinationSide = dropPreview.Side;
+            destinationPosition = dropPreview.Position;
+        }
+
+        if (destinationSide.HasValue &&
+            destinationPosition.HasValue &&
+            IsLegalDropTarget(destinationSide.Value, destinationPosition.Value))
+        {
+            if (destinationPosition.Value != draggedTroop.Position)
+            {
+                battleState = battleState.MoveTroop(movedSide, movedTroopName, destinationPosition.Value);
+                RebuildSetupLog($"{movedTroopName} moved.");
+            }
         }
 
         ClearTroopDrag();
@@ -398,13 +452,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         if (draggedTroop is null ||
             !CanRotateFormations ||
-            side != draggedTroop.Side ||
-            position == draggedTroop.Position)
+            side != draggedTroop.Side)
         {
             return false;
         }
 
-        return !battleState.GetUnit(side).Troops.Any(troop => troop.Position == position);
+        return !battleState.GetUnit(side).Troops.Any(troop =>
+            troop.Position == position &&
+            (troop.Name != draggedTroop.Name || troop.Position != draggedTroop.Position));
     }
 
     private IBrush GetCellBackground(BattleSide side, GridPosition position)

@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BattleSim.App.Views.TroopDetailWindow"
+        Width="360"
+        Height="460"
+        MinWidth="320"
+        MinHeight="420"
+        Title="{Binding Name}">
+  <Grid RowDefinitions="Auto,*" Margin="16" RowSpacing="14">
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Image Source="{Binding PortraitImage}"
+             Width="72"
+             Height="72"
+             Stretch="Uniform" />
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding ClassName}" FontSize="14" />
+        <TextBlock Text="{Binding SideLabel}" FontSize="12" Foreground="#666" />
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Grid.Row="1" Spacing="12">
+      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+          <TextBlock Text="Position" FontWeight="SemiBold" />
+          <TextBlock Grid.Column="1" Text="{Binding PositionLabel}" />
+
+          <TextBlock Grid.Row="1" Text="Rank" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FormationRankLabel}" />
+
+          <TextBlock Grid.Row="2" Text="HP" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding HitPointsLabel}" />
+
+          <TextBlock Grid.Row="3" Text="Actions" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ActionCountLabel}" />
+
+          <TextBlock Grid.Row="4" Text="Next" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding NextActionLabel}" />
+        </Grid>
+      </Border>
+
+      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+          <TextBlock Text="Max HP" FontWeight="SemiBold" />
+          <TextBlock Grid.Column="1" Text="{Binding Stats.MaxHitPoints}" />
+
+          <TextBlock Grid.Row="1" Text="Attack" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Stats.Attack}" />
+
+          <TextBlock Grid.Row="2" Text="Defense" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Stats.Defense}" />
+
+          <TextBlock Grid.Row="3" Text="Speed" FontWeight="SemiBold" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Stats.Speed}" />
+        </Grid>
+      </Border>
+
+      <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Current Row Actions" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding ActionSequenceLabel}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Button Content="Close"
+              HorizontalAlignment="Right"
+              MinWidth="80"
+              Click="OnCloseClicked" />
+    </StackPanel>
+  </Grid>
+</Window>

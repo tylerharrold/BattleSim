@@ -85,8 +85,22 @@ public sealed partial class MainWindow : Window
 
     private void OnGridCellPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (!isDraggingTroop || DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not MainWindowViewModel viewModel)
         {
+            return;
+        }
+
+        if (!isDraggingTroop)
+        {
+            if (sender is Control control &&
+                control.DataContext is GridCellViewModel cell &&
+                viewModel.CreateTroopDetail(cell) is { } detail)
+            {
+                var detailWindow = new TroopDetailWindow(detail);
+                _ = detailWindow.ShowDialog(this);
+                e.Handled = true;
+            }
+
             return;
         }
 
