@@ -150,7 +150,13 @@ public sealed class BattleEngine
         BattleSide defenderSide,
         ICollection<BattleEvent> events)
     {
-        var targetingContext = new TargetingContext(attacker, attackerUnit, defenderUnit);
+        var targetingContext = new TargetingContext(
+            attacker,
+            attackerUnit,
+            defenderUnit,
+            GetFormationOrientation(attackerSide),
+            GetFormationOrientation(defenderSide),
+            random);
         var targets = action.TargetingRule.SelectTargets(targetingContext, action);
 
         if (!targets.HasTargets)
@@ -297,6 +303,13 @@ public sealed class BattleEngine
     private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)
     {
         return action.TargetSide == TargetSide.Ally ? attackerSide : defenderSide;
+    }
+
+    private static FormationOrientation GetFormationOrientation(BattleSide side)
+    {
+        return side == BattleSide.Left
+            ? FormationOrientation.FrontOnRight
+            : FormationOrientation.FrontOnLeft;
     }
 
     private static BattleEventIntent GetEventIntent(BattleActionDefinition action)

@@ -14,8 +14,11 @@ public sealed record GridCellViewModel(
     string PortraitAssetPath,
     IImage? PortraitImage,
     bool HasPortrait,
+    bool IsLeader,
     string HitPointsLabel,
     string AttacksLabel,
     IBrush BackgroundBrush,
     IBrush BorderBrush,
-    Thickness BorderThickness);
+    Thickness BorderThickness,
+    IBrush PortraitBorderBrush,
+    Thickness PortraitBorderThickness);

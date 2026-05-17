@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using BattleSim.Domain.Enums;
 using BattleSim.Domain.Models;
 using BattleSim.Engine;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +17,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private const double ArrowHeadWidth = 8;
     private static readonly IBrush LeftCellBackground = Brush.Parse("#F6FAFF");
     private static readonly IBrush RightCellBackground = Brush.Parse("#FFF7F7");
+    private static readonly IBrush LeftLeaderCellBackground = Brush.Parse("#DDEEFF");
+    private static readonly IBrush RightLeaderCellBackground = Brush.Parse("#FFE1E1");
+    private static readonly IBrush LeftLeaderPortraitBorder = Brushes.Gold;
+    private static readonly IBrush RightLeaderPortraitBorder = Brush.Parse("#B7791F");
+    private static readonly IBrush LeftOrderButtonBackground = Brush.Parse("#D9ECFF");
+    private static readonly IBrush LeftSelectedOrderButtonBackground = Brush.Parse("#7DB8F0");
+    private static readonly IBrush RightOrderButtonBackground = Brush.Parse("#FFE0E0");
+    private static readonly IBrush RightSelectedOrderButtonBackground = Brush.Parse("#F29A9A");
     private static readonly IBrush LegalDropBackground = Brush.Parse("#BFE3FF");
     private static readonly IBrush IllegalDropBackground = Brush.Parse("#FFD0D0");
 
@@ -47,6 +56,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string roundLabel = string.Empty;
+
+    [ObservableProperty]
+    private IBrush leftNormalOrderBackground = LeftSelectedOrderButtonBackground;
+
+    [ObservableProperty]
+    private IBrush leftWeakestOrderBackground = LeftOrderButtonBackground;
+
+    [ObservableProperty]
+    private IBrush leftLeaderOrderBackground = LeftOrderButtonBackground;
+
+    [ObservableProperty]
+    private IBrush rightNormalOrderBackground = RightSelectedOrderButtonBackground;
+
+    [ObservableProperty]
+    private IBrush rightWeakestOrderBackground = RightOrderButtonBackground;
+
+    [ObservableProperty]
+    private IBrush rightLeaderOrderBackground = RightOrderButtonBackground;
 
     [ObservableProperty]
     private BattleLogEntryViewModel? selectedBattleLogEntry;
@@ -96,6 +123,18 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void RotateRightFormation()
     {
         RotateFormation(BattleSide.Right, "Red formation rotated clockwise.");
+    }
+
+    [RelayCommand]
+    private void SetLeftTargetingPreference(TargetingPreference targetingPreference)
+    {
+        SetTargetingPreference(BattleSide.Left, targetingPreference);
+    }
+
+    [RelayCommand]
+    private void SetRightTargetingPreference(TargetingPreference targetingPreference)
+    {
+        SetTargetingPreference(BattleSide.Right, targetingPreference);
     }
 
     [RelayCommand]
@@ -312,6 +351,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         LeftUnitName = battleState.LeftUnit.Name;
         RightUnitName = battleState.RightUnit.Name;
         RoundLabel = $"Round {battleState.RoundNumber}";
+        RefreshTargetingOrderButtons();
 
         ReplaceCells(LeftGridCells, battleState.LeftUnit);
         ReplaceCells(RightGridCells, battleState.RightUnit);
@@ -352,6 +392,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         var hp = $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP";
         var attacks = $"{troop.RemainingBattleAttacks}/{troop.MaxBattleAttacks} attacks";
+        var isLeader = unit.IsLeader(troop);
         var isActor = SelectedBattleLogEntry?.ActorSide == side && SelectedBattleLogEntry.ActorPosition == troop.Position;
         var isTarget = SelectedBattleLogEntry?.TargetSide == side && SelectedBattleLogEntry.TargetPosition == troop.Position;
 
@@ -367,11 +408,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
             troop.ClassDefinition.PortraitAssetPath,
             GetPortraitImage(troop.ClassDefinition.PortraitAssetPath),
             !string.IsNullOrWhiteSpace(troop.ClassDefinition.PortraitAssetPath),
+            isLeader,
             hp,
             attacks,
-            GetCellBackground(side, troop.Position),
+            GetCellBackground(side, troop.Position, isLeader),
             borderBrush,
-            borderThickness);
+            borderThickness,
+            isLeader ? GetLeaderPortraitBorderBrush(side) : Brushes.Transparent,
+            new Thickness(isLeader ? 2 : 0));
     }
 
     private GridCellViewModel ToEmptyCell(BattleSide side, GridPosition position)
@@ -385,11 +429,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
             string.Empty,
             null,
             false,
+            false,
             string.Empty,
             string.Empty,
-            GetCellBackground(side, position),
+            GetCellBackground(side, position, isLeader: false),
             Brushes.Gray,
-            new Thickness(1));
+            new Thickness(1),
+            Brushes.Transparent,
+            new Thickness(0));
     }
 
     private IImage? GetPortraitImage(string assetPath)
@@ -441,6 +488,14 @@ public sealed partial class MainWindowViewModel : ObservableObject
         RefreshFromState();
     }
 
+    private void SetTargetingPreference(BattleSide side, TargetingPreference targetingPreference)
+    {
+        battleState = battleState.SetTargetingPreference(side, targetingPreference);
+        BattleLog.Add(new BattleLogEntryViewModel(
+            $"{battleState.GetUnit(side).Name} orders changed to {FormatTargetingPreference(targetingPreference)} targeting."));
+        RefreshFromState();
+    }
+
     private void UpdateDraggedPortraitPosition(Point pointerPosition)
     {
         DraggedPortraitLeft = pointerPosition.X - 24;
@@ -469,11 +524,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
             (troop.Name != draggedTroop.Name || troop.Position != draggedTroop.Position));
     }
 
-    private IBrush GetCellBackground(BattleSide side, GridPosition position)
+    private IBrush GetCellBackground(BattleSide side, GridPosition position, bool isLeader)
     {
         if (dropPreview is not null && dropPreview.Side == side && dropPreview.Position == position)
         {
             return dropPreview.IsLegal ? LegalDropBackground : IllegalDropBackground;
+        }
+
+        if (isLeader)
+        {
+            return side == BattleSide.Left ? LeftLeaderCellBackground : RightLeaderCellBackground;
         }
 
         return side == BattleSide.Left ? LeftCellBackground : RightCellBackground;
@@ -513,6 +573,42 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         return Brushes.Gray;
+    }
+
+    private static IBrush GetLeaderPortraitBorderBrush(BattleSide side)
+    {
+        return side == BattleSide.Left ? LeftLeaderPortraitBorder : RightLeaderPortraitBorder;
+    }
+
+    private void RefreshTargetingOrderButtons()
+    {
+        LeftNormalOrderBackground = GetOrderButtonBackground(BattleSide.Left, TargetingPreference.Normal);
+        LeftWeakestOrderBackground = GetOrderButtonBackground(BattleSide.Left, TargetingPreference.Weakest);
+        LeftLeaderOrderBackground = GetOrderButtonBackground(BattleSide.Left, TargetingPreference.Leader);
+        RightNormalOrderBackground = GetOrderButtonBackground(BattleSide.Right, TargetingPreference.Normal);
+        RightWeakestOrderBackground = GetOrderButtonBackground(BattleSide.Right, TargetingPreference.Weakest);
+        RightLeaderOrderBackground = GetOrderButtonBackground(BattleSide.Right, TargetingPreference.Leader);
+    }
+
+    private IBrush GetOrderButtonBackground(BattleSide side, TargetingPreference targetingPreference)
+    {
+        var selectedPreference = battleState.GetUnit(side).TargetingPreference;
+        var isSelected = selectedPreference == targetingPreference;
+
+        return side == BattleSide.Left
+            ? isSelected ? LeftSelectedOrderButtonBackground : LeftOrderButtonBackground
+            : isSelected ? RightSelectedOrderButtonBackground : RightOrderButtonBackground;
+    }
+
+    private static string FormatTargetingPreference(TargetingPreference targetingPreference)
+    {
+        return targetingPreference switch
+        {
+            TargetingPreference.Normal => "Normal",
+            TargetingPreference.Weakest => "Weakest",
+            TargetingPreference.Leader => "Leader",
+            _ => targetingPreference.ToString()
+        };
     }
 
     private static string CreateArrowPathData(Point start, Point end)

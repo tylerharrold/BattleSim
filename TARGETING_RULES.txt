@@ -1,0 +1,182 @@
+BattleSim Targeting Rules
+Last updated: 2026-05-17
+
+Purpose
+This document describes the targeting rules as they currently exist in the prototype.
+It is intended as a working design reference, not final player-facing documentation.
+
+
+Core Concepts
+
+Each Unit has a TargetingPreference:
+- Normal
+- Weakest
+- Leader
+
+The player can change each unit's targeting preference at any time using the three buttons under that unit's grid.
+
+Targeting preference is stored at the unit level. It is not stored on individual troops or troop classes.
+
+Each BattleActionDefinition still owns its actual targeting rule object:
+- Slash uses MeleeTargetingRule.
+- Staff Bonk uses MeleeTargetingRule.
+- Bow Shot uses RangedTargetingRule.
+- Firebolt uses RangedTargetingRule.
+- Heal uses MostDamagedAllyTargetingRule.
+
+Unit targeting preference is only a preference. If the preferred target cannot be selected by the action's targeting rule, the action falls back to its normal targeting behavior.
+
+
+Formation Orientation
+
+The battle screen always treats the units as facing each other.
+
+Blue / left unit:
+- Front row is the rightmost column.
+- Back row is the leftmost column.
+
+Red / right unit:
+- Front row is the leftmost column.
+- Back row is the rightmost column.
+
+Targeting rules receive formation orientation from the engine so the domain targeting rules can reason about front-most enemies without referencing UI or BattleState.
+
+
+Leader Targeting
+
+Each unit currently has one designated leader:
+- Blue Unit leader: Blue Cleric
+- Red Unit leader: Red Fighter
+
+Leader targeting behavior:
+- If a unit's targeting preference is Leader, damaging actions first attempt to target the enemy leader.
+- If the enemy leader is defeated, the action falls back to its normal targeting behavior.
+- If the action cannot legally target the leader, it falls back to normal targeting.
+
+Ranged/spell actions can target the leader anywhere in the opposing formation.
+
+Melee actions can target the leader only if the leader is melee-reachable.
+
+
+Weakest Targeting
+
+If a unit's targeting preference is Weakest, damaging actions first attempt to target the living enemy with the lowest current HP.
+
+Weakest target tie-breaks:
+1. Lowest current HP.
+2. Highest proportional HP.
+3. Closest battle-space distance.
+4. Random choice using the battle engine RNG.
+
+Example:
+If two enemies both have 10 HP, but one is 10/32 HP and the other is 10/48 HP, the 10/32 HP target is chosen because it has the higher proportional HP.
+
+Ranged/spell actions can target the weakest enemy anywhere in the opposing formation.
+
+Melee actions can target the weakest enemy only if that enemy is melee-reachable.
+
+If the preferred weakest target is not melee-reachable, the melee action falls back to normal melee targeting.
+
+
+Normal Ranged / Spell Targeting
+
+Ranged and spell actions currently use RangedTargetingRule.
+
+Current ranged/spell actions:
+- Bow Shot
+- Firebolt
+
+Normal ranged/spell targeting can target any living enemy on the opposing formation.
+
+Normal ranged/spell target priority:
+1. Highest proportional HP.
+2. Closest battle-space distance.
+3. Random choice using the battle engine RNG.
+
+Proportional HP means:
+current HP / max HP
+
+Battle-space distance means:
+How many grid steps it would take to move from the attacker's current square into the opposing formation, one grid square at a time.
+
+The current implementation computes this as a Manhattan-style distance after mapping both formations into one shared battle-space.
+
+
+Melee Reachability
+
+Melee actions currently use MeleeTargetingRule.
+
+Current melee actions:
+- Slash
+- Staff Bonk
+
+A melee action cannot attack through a living enemy to hit a troop behind it.
+
+A melee target is reachable only if:
+1. The target is in the attacker's same horizontal lane or an adjacent horizontal lane.
+2. The target is the front-most living enemy in that lane.
+
+Same lane means the same row index on the battle display.
+Adjacent lane means one row above or one row below.
+
+If an enemy is behind another living enemy in the same lane, that enemy is blocked from melee targeting.
+
+
+Normal Melee Targeting
+
+Normal melee targeting priority:
+1. Check the attacker's same horizontal lane.
+2. If that lane has a living enemy, target the front-most living enemy in that lane.
+3. If the same lane is empty, check adjacent lanes.
+4. From adjacent lanes, consider only the front-most living enemy in each lane.
+5. Choose the adjacent-lane target with the highest proportional HP.
+6. If proportional HP is tied, choose the closest battle-space distance.
+7. If distance is still tied, choose randomly using the battle engine RNG.
+
+
+Healing Targeting
+
+Heal uses MostDamagedAllyTargetingRule.
+
+Healing does not follow the unit's enemy targeting preference.
+
+Heal target priority:
+1. Target the living ally with the most missing HP.
+2. If no living ally is missing HP, target the living ally with the lowest max HP.
+3. If there is still a tie, use reading order by grid position.
+
+The Cleric can heal herself.
+
+If the Cleric self-heals, the UI does not draw an arrow from the Cleric to herself.
+
+
+UI Targeting Presentation
+
+Each unit has three targeting order buttons:
+- Normal
+- Weakest
+- Leader
+
+The currently selected order is shown by a darker button tint.
+
+Blue-side order buttons use blue tints.
+Red-side order buttons use red tints.
+
+Helpful action targets are highlighted blue.
+Harmful action targets are highlighted yellow.
+Actors are highlighted green unless the selected event is a helpful self-target action, in which case the single cell appears as the helpful blue target.
+
+Attack arrows:
+- Harmful action arrows are red.
+- Helpful action arrows are green.
+- Self-targeted actions do not draw an arrow.
+
+
+Known Limitations / Future Work
+
+- Melee and ranged rules are still intentionally simple.
+- There is no row-wide targeting yet.
+- There is no area-of-effect targeting yet.
+- There is no cover, evasion, facing, or pathfinding beyond the current simple battle-space distance tie-break.
+- Targeting rules return one target today, though TargetSelection already supports multiple targets.
+- Tie-break randomness uses the battle engine RNG, but the UI does not currently display why a specific tie was resolved.

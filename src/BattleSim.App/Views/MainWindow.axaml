@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:enums="clr-namespace:BattleSim.Domain.Enums;assembly=BattleSim.Domain"
         x:Class="BattleSim.App.Views.MainWindow"
         Width="980"
         Height="620"
@@ -16,7 +17,7 @@
     </StackPanel>
 
     <Grid Grid.Row="1" x:Name="BattleGridLayer">
-      <Grid x:Name="BattleGrid" ColumnDefinitions="*,*" RowDefinitions="Auto,*" ColumnSpacing="16" RowSpacing="8">
+      <Grid x:Name="BattleGrid" ColumnDefinitions="*,*" RowDefinitions="Auto,*,Auto" ColumnSpacing="16" RowSpacing="8">
         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <TextBlock Text="{Binding LeftUnitName}" FontSize="18" FontWeight="SemiBold" />
           <Button Content="Rotate" Command="{Binding RotateLeftFormationCommand}" IsEnabled="{Binding CanRotateFormations}" />
@@ -49,11 +50,15 @@
                              FontWeight="SemiBold"
                              TextWrapping="NoWrap"
                              TextTrimming="CharacterEllipsis" />
-                  <Image Source="{Binding PortraitImage}"
-                         IsVisible="{Binding HasPortrait}"
-                         Width="38"
-                         Height="38"
-                         Stretch="Uniform" />
+                  <Border BorderBrush="{Binding PortraitBorderBrush}"
+                          BorderThickness="{Binding PortraitBorderThickness}"
+                          IsVisible="{Binding HasPortrait}"
+                          Padding="1">
+                    <Image Source="{Binding PortraitImage}"
+                           Width="38"
+                           Height="38"
+                           Stretch="Uniform" />
+                  </Border>
                   <TextBlock Text="{Binding ClassName}" FontSize="12" />
                   <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
                   <TextBlock Text="{Binding AttacksLabel}" FontSize="12" />
@@ -85,11 +90,15 @@
                              FontWeight="SemiBold"
                              TextWrapping="NoWrap"
                              TextTrimming="CharacterEllipsis" />
-                  <Image Source="{Binding PortraitImage}"
-                         IsVisible="{Binding HasPortrait}"
-                         Width="38"
-                         Height="38"
-                         Stretch="Uniform" />
+                  <Border BorderBrush="{Binding PortraitBorderBrush}"
+                          BorderThickness="{Binding PortraitBorderThickness}"
+                          IsVisible="{Binding HasPortrait}"
+                          Padding="1">
+                    <Image Source="{Binding PortraitImage}"
+                           Width="38"
+                           Height="38"
+                           Stretch="Uniform" />
+                  </Border>
                   <TextBlock Text="{Binding ClassName}" FontSize="12" />
                   <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
                   <TextBlock Text="{Binding AttacksLabel}" FontSize="12" />
@@ -98,6 +107,42 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+          <Button Content="Normal"
+                  MinWidth="72"
+                  Background="{Binding LeftNormalOrderBackground}"
+                  Command="{Binding SetLeftTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Normal}" />
+          <Button Content="Weakest"
+                  MinWidth="72"
+                  Background="{Binding LeftWeakestOrderBackground}"
+                  Command="{Binding SetLeftTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Weakest}" />
+          <Button Content="Leader"
+                  MinWidth="72"
+                  Background="{Binding LeftLeaderOrderBackground}"
+                  Command="{Binding SetLeftTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Leader}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+          <Button Content="Normal"
+                  MinWidth="72"
+                  Background="{Binding RightNormalOrderBackground}"
+                  Command="{Binding SetRightTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Normal}" />
+          <Button Content="Weakest"
+                  MinWidth="72"
+                  Background="{Binding RightWeakestOrderBackground}"
+                  Command="{Binding SetRightTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Weakest}" />
+          <Button Content="Leader"
+                  MinWidth="72"
+                  Background="{Binding RightLeaderOrderBackground}"
+                  Command="{Binding SetRightTargetingPreferenceCommand}"
+                  CommandParameter="{x:Static enums:TargetingPreference.Leader}" />
+        </StackPanel>
       </Grid>
 
       <Canvas IsHitTestVisible="False" ClipToBounds="False">

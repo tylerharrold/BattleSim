@@ -276,6 +276,151 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void RangedTargetingRule_CanFollowLeaderPreference()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Archer, new GridPosition(1, 2));
+        var frontEnemy = new Troop("Enemy Front", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var leader = new Troop("Enemy Leader", BuiltInTroopClasses.Wizard, new GridPosition(2, 2));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Leader),
+            new Unit("Enemies", new[] { frontEnemy, leader }, leaderName: leader.Name),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.BowShot.TargetingRule.SelectTargets(context, BuiltInBattleActions.BowShot);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Leader", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void RangedTargetingRule_NormalPreferenceTargetsHighestProportionalHealth()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Archer, new GridPosition(1, 2));
+        var healthyFarEnemy = new Troop("Healthy Far Enemy", BuiltInTroopClasses.Fighter, new GridPosition(2, 2));
+        var damagedNearEnemy = new Troop("Damaged Near Enemy", BuiltInTroopClasses.Wizard, new GridPosition(1, 0));
+        damagedNearEnemy.TakeDamage(8);
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { damagedNearEnemy, healthyFarEnemy }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.BowShot.TargetingRule.SelectTargets(context, BuiltInBattleActions.BowShot);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Healthy Far Enemy", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void RangedTargetingRule_NormalPreferenceBreaksProportionalHealthTiesByDistance()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Archer, new GridPosition(0, 2));
+        var nearEnemy = new Troop("Near Enemy", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var farEnemy = new Troop("Far Enemy", BuiltInTroopClasses.Fighter, new GridPosition(2, 2));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { farEnemy, nearEnemy }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.BowShot.TargetingRule.SelectTargets(context, BuiltInBattleActions.BowShot);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Near Enemy", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void RangedTargetingRule_WeakestPreferenceBreaksHitPointTiesByHighestProportionalHealth()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Archer, new GridPosition(1, 2));
+        var fighter = new Troop("Enemy Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var wizard = new Troop("Enemy Wizard", BuiltInTroopClasses.Wizard, new GridPosition(2, 2));
+        fighter.TakeDamage(38);
+        wizard.TakeDamage(22);
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Weakest),
+            new Unit("Enemies", new[] { fighter, wizard }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.BowShot.TargetingRule.SelectTargets(context, BuiltInBattleActions.BowShot);
+
+        Assert.Equal(10, fighter.CurrentHitPoints);
+        Assert.Equal(10, wizard.CurrentHitPoints);
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Wizard", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_FallsBackWhenPreferredLeaderIsBlocked()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
+        var blocker = new Troop("Enemy Blocker", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var leader = new Troop("Enemy Leader", BuiltInTroopClasses.Wizard, new GridPosition(1, 1));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Leader),
+            new Unit("Enemies", new[] { blocker, leader }, leaderName: leader.Name),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Blocker", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_PrefersDirectLaneBeforeAdjacentLanes()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
+        var direct = new Troop("Enemy Direct", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var adjacent = new Troop("Enemy Adjacent", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { adjacent, direct }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Enemy Direct", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_AdjacentLaneTieUsesDistance()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
+        var nearAdjacent = new Troop("Near Adjacent", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var farAdjacent = new Troop("Far Adjacent", BuiltInTroopClasses.Fighter, new GridPosition(2, 1));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { farAdjacent, nearAdjacent }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Near Adjacent", selection.Targets.Single().Name);
+    }
+
+    [Fact]
     public void MostDamagedAllyTargetingRule_SelectsMostDamagedLivingAlly()
     {
         var attacker = new Troop("Attacker", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
@@ -286,7 +431,10 @@ public sealed class BattleEngineTests
         var context = new TargetingContext(
             attacker,
             new Unit("Allies", new[] { attacker, lightlyDamaged, heavilyDamaged }),
-            new Unit("Enemies", Array.Empty<Troop>()));
+            new Unit("Enemies", Array.Empty<Troop>()),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
 
         var selection = BuiltInBattleActions.Heal.TargetingRule.SelectTargets(context, BuiltInBattleActions.Heal);
 
@@ -303,7 +451,10 @@ public sealed class BattleEngineTests
         var context = new TargetingContext(
             cleric,
             new Unit("Allies", new[] { fighter, cleric, archer }),
-            new Unit("Enemies", Array.Empty<Troop>()));
+            new Unit("Enemies", Array.Empty<Troop>()),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
 
         var selection = BuiltInBattleActions.Heal.TargetingRule.SelectTargets(context, BuiltInBattleActions.Heal);
 
@@ -329,7 +480,10 @@ public sealed class BattleEngineTests
         var context = new TargetingContext(
             attacker,
             new Unit("Allies", new[] { attacker }),
-            new Unit("Enemies", new[] { defeatedEnemy }));
+            new Unit("Enemies", new[] { defeatedEnemy }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
 
         var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
 
@@ -433,6 +587,27 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void CreateDefault_AssignsUnitLeaders()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+
+        Assert.Equal("Blue Cleric", state.LeftUnit.LeaderName);
+        Assert.Equal("Red Fighter", state.RightUnit.LeaderName);
+    }
+
+    [Fact]
+    public void UnitLeaders_ArePreservedWhenFormationChanges()
+    {
+        var state = BattleState.CreateDefault(seed: 1);
+
+        var rotatedState = state.RotateFormationClockwise(BattleSide.Left);
+        var movedState = rotatedState.MoveTroop(BattleSide.Left, "Blue Cleric", new GridPosition(0, 0));
+
+        Assert.Equal("Blue Cleric", movedState.LeftUnit.LeaderName);
+        Assert.True(movedState.LeftUnit.IsLeader(movedState.LeftUnit.Troops.Single(troop => troop.Name == "Blue Cleric")));
+    }
+
+    [Fact]
     public void MoveTroop_BeforeBattleStartRequiresEmptySlot()
     {
         var state = BattleState.CreateDefault(seed: 1);
@@ -496,6 +671,9 @@ public sealed class BattleEngineTests
         return new TargetingContext(
             attacker,
             new Unit("Allies", new[] { attacker }),
-            new Unit("Enemies", new[] { backEnemy, frontEnemy }));
+            new Unit("Enemies", new[] { backEnemy, frontEnemy }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
     }
 }

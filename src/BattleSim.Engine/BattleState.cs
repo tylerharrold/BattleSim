@@ -1,3 +1,4 @@
+using BattleSim.Domain.Enums;
 using BattleSim.Domain.Models;
 
 namespace BattleSim.Engine;
@@ -117,7 +118,9 @@ public sealed class BattleState
         var movedUnit = new Unit(
             unit.Name,
             unit.Troops.Select(candidate =>
-                candidate.Name == troopName ? candidate.CloneAtPosition(destination) : candidate.Clone()));
+                candidate.Name == troopName ? candidate.CloneAtPosition(destination) : candidate.Clone()),
+            unit.LeaderName,
+            unit.TargetingPreference);
 
         ApplyBattleAttackLimits(movedUnit, side);
 
@@ -145,6 +148,13 @@ public sealed class BattleState
 
     public Unit GetOpponent(BattleSide side) => side == BattleSide.Left ? RightUnit : LeftUnit;
 
+    public BattleState SetTargetingPreference(BattleSide side, TargetingPreference targetingPreference)
+    {
+        return side == BattleSide.Left
+            ? new BattleState(LeftUnit.WithTargetingPreference(targetingPreference), RightUnit, Plan, RoundNumber, UnitOrderIndex, TroopOrderIndex, HasRoundStarted)
+            : new BattleState(LeftUnit, RightUnit.WithTargetingPreference(targetingPreference), Plan, RoundNumber, UnitOrderIndex, TroopOrderIndex, HasRoundStarted);
+    }
+
     public static BattleState CreateDefault(int? seed = null)
     {
         // The engine owns sample battle creation so the UI can reset without embedding combat setup rules.
@@ -153,14 +163,14 @@ public sealed class BattleState
             new Troop("Blue Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 0)),
             new Troop("Blue Archer", BuiltInTroopClasses.Archer, new GridPosition(0, 1)),
             new Troop("Blue Cleric", BuiltInTroopClasses.Cleric, new GridPosition(2, 1))
-        });
+        }, leaderName: "Blue Cleric");
 
         var right = new Unit("Red Unit", new[]
         {
             new Troop("Red Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 2)),
             new Troop("Red Wizard", BuiltInTroopClasses.Wizard, new GridPosition(0, 1)),
             new Troop("Red Archer", BuiltInTroopClasses.Archer, new GridPosition(2, 1))
-        });
+        }, leaderName: "Red Fighter");
 
         var random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
         ApplyBattleAttackLimits(left, BattleSide.Left);
@@ -211,7 +221,11 @@ public sealed class BattleState
 
     private static Unit RotateUnitClockwise(Unit unit)
     {
-        return new Unit(unit.Name, unit.Troops.Select(troop => troop.CloneAtPosition(RotatePositionClockwise(troop.Position))));
+        return new Unit(
+            unit.Name,
+            unit.Troops.Select(troop => troop.CloneAtPosition(RotatePositionClockwise(troop.Position))),
+            unit.LeaderName,
+            unit.TargetingPreference);
     }
 
     private static GridPosition RotatePositionClockwise(GridPosition position)
