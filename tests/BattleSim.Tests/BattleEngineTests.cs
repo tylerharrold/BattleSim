@@ -381,6 +381,67 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void MeleeTargetingRule_AttacksBlockerInsteadOfDefaultTargetWhenPreferredTargetIsBlocked()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
+        var defaultTarget = new Troop("Default Target", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        var blocker = new Troop("Leader Blocker", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var leader = new Troop("Enemy Leader", BuiltInTroopClasses.Wizard, new GridPosition(0, 1));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Leader),
+            new Unit("Enemies", new[] { defaultTarget, blocker, leader }, leaderName: leader.Name),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Leader Blocker", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_UsesDefaultTargetingWhenPreferredTargetIsOutsideReachableLanes()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(2, 2));
+        var defaultTarget = new Troop("Default Target", BuiltInTroopClasses.Fighter, new GridPosition(2, 0));
+        var blocker = new Troop("Leader Blocker", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var leader = new Troop("Enemy Leader", BuiltInTroopClasses.Wizard, new GridPosition(0, 1));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Leader),
+            new Unit("Enemies", new[] { defaultTarget, blocker, leader }, leaderName: leader.Name),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Default Target", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void MeleeTargetingRule_CanAlwaysTargetTheOnlyLivingEnemy()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(2, 2));
+        var onlyEnemy = new Troop("Only Enemy", BuiltInTroopClasses.Wizard, new GridPosition(0, 2));
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }),
+            new Unit("Enemies", new[] { onlyEnemy }),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = BuiltInBattleActions.Slash.TargetingRule.SelectTargets(context, BuiltInBattleActions.Slash);
+
+        Assert.True(selection.HasTargets);
+        Assert.Equal("Only Enemy", selection.Targets.Single().Name);
+    }
+
+    [Fact]
     public void MeleeTargetingRule_PrefersDirectLaneBeforeAdjacentLanes()
     {
         var attacker = new Troop("Attacker", BuiltInTroopClasses.Fighter, new GridPosition(1, 2));
@@ -460,6 +521,57 @@ public sealed class BattleEngineTests
 
         Assert.True(selection.HasTargets);
         Assert.Equal("Cleric", selection.Targets.Single().Name);
+    }
+
+    [Fact]
+    public void EntireUnitTargetingRule_TargetsAllLivingEnemiesAndIgnoresPreference()
+    {
+        var attacker = new Troop("Attacker", BuiltInTroopClasses.Wizard, new GridPosition(1, 1));
+        var enemyOne = new Troop("Enemy One", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var enemyTwo = new Troop("Enemy Two", BuiltInTroopClasses.Archer, new GridPosition(1, 0));
+        var defeatedEnemy = new Troop("Defeated Enemy", BuiltInTroopClasses.Cleric, new GridPosition(2, 0));
+        defeatedEnemy.TakeDamage(defeatedEnemy.Stats.MaxHitPoints);
+        var action = BuiltInBattleActions.Firebolt with
+        {
+            TargetingRule = new EntireUnitTargetingRule(),
+            TargetSide = TargetSide.Enemy
+        };
+        var context = new TargetingContext(
+            attacker,
+            new Unit("Allies", new[] { attacker }, targetingPreference: TargetingPreference.Leader),
+            new Unit("Enemies", new[] { enemyOne, enemyTwo, defeatedEnemy }, leaderName: defeatedEnemy.Name),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = action.TargetingRule.SelectTargets(context, action);
+
+        Assert.Equal(new[] { "Enemy One", "Enemy Two" }, selection.Targets.Select(troop => troop.Name));
+    }
+
+    [Fact]
+    public void EntireUnitTargetingRule_TargetsAllLivingAlliesAndIgnoresPreference()
+    {
+        var cleric = new Troop("Cleric", BuiltInTroopClasses.Cleric, new GridPosition(1, 1));
+        var fighter = new Troop("Fighter", BuiltInTroopClasses.Fighter, new GridPosition(0, 0));
+        var defeatedAlly = new Troop("Defeated Ally", BuiltInTroopClasses.Archer, new GridPosition(2, 0));
+        defeatedAlly.TakeDamage(defeatedAlly.Stats.MaxHitPoints);
+        var action = BuiltInBattleActions.Heal with
+        {
+            TargetingRule = new EntireUnitTargetingRule(),
+            TargetSide = TargetSide.Ally
+        };
+        var context = new TargetingContext(
+            cleric,
+            new Unit("Allies", new[] { cleric, fighter, defeatedAlly }, targetingPreference: TargetingPreference.Weakest),
+            new Unit("Enemies", Array.Empty<Troop>()),
+            FormationOrientation.FrontOnRight,
+            FormationOrientation.FrontOnLeft,
+            new Random(1));
+
+        var selection = action.TargetingRule.SelectTargets(context, action);
+
+        Assert.Equal(new[] { "Cleric", "Fighter" }, selection.Targets.Select(troop => troop.Name));
     }
 
     [Fact]

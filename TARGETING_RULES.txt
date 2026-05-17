@@ -24,7 +24,13 @@ Each BattleActionDefinition still owns its actual targeting rule object:
 - Firebolt uses RangedTargetingRule.
 - Heal uses MostDamagedAllyTargetingRule.
 
-Unit targeting preference is only a preference. If the preferred target cannot be selected by the action's targeting rule, the action falls back to its normal targeting behavior.
+There is also a stubbed EntireUnitTargetingRule for future area actions.
+No built-in action currently uses it.
+
+Unit targeting preference is only a preference. If the preferred target cannot be selected by the action's targeting rule, the action usually falls back to its normal targeting behavior.
+
+Melee has one important exception:
+- If the preferred target is in a reachable lane but is blocked by a front-most living enemy, the melee attacker targets that blocker instead. This represents carving a path toward the preferred target.
 
 
 Formation Orientation
@@ -51,11 +57,13 @@ Each unit currently has one designated leader:
 Leader targeting behavior:
 - If a unit's targeting preference is Leader, damaging actions first attempt to target the enemy leader.
 - If the enemy leader is defeated, the action falls back to its normal targeting behavior.
-- If the action cannot legally target the leader, it falls back to normal targeting.
+- If a ranged/spell action cannot legally target the leader, it falls back to normal targeting.
+- If a melee action cannot target the leader because the leader is in a non-reachable lane, it falls back to normal melee targeting.
+- If a melee action cannot target the leader because another living enemy is blocking the leader in a reachable lane, it targets the blocker.
 
 Ranged/spell actions can target the leader anywhere in the opposing formation.
 
-Melee actions can target the leader only if the leader is melee-reachable.
+Melee actions can target the leader only if the leader is melee-reachable. If the leader is blocked but in a reachable lane, melee attacks target the blocker.
 
 
 Weakest Targeting
@@ -75,7 +83,9 @@ Ranged/spell actions can target the weakest enemy anywhere in the opposing forma
 
 Melee actions can target the weakest enemy only if that enemy is melee-reachable.
 
-If the preferred weakest target is not melee-reachable, the melee action falls back to normal melee targeting.
+If the preferred weakest target is not melee-reachable because it is in a non-reachable lane, the melee action falls back to normal melee targeting.
+
+If the preferred weakest target is blocked by another living enemy in a reachable lane, the melee action targets the blocker.
 
 
 Normal Ranged / Spell Targeting
@@ -111,6 +121,10 @@ Current melee actions:
 - Staff Bonk
 
 A melee action cannot attack through a living enemy to hit a troop behind it.
+
+Last enemy exception:
+- If there is only one living enemy left, a melee action can target that enemy regardless of normal lane or blocker rules.
+- This exists so a melee troop can still take its attack when only one opponent remains, unless a future explicit status rule prevents acting.
 
 A melee target is reachable only if:
 1. The target is in the attacker's same horizontal lane or an adjacent horizontal lane.
@@ -148,6 +162,26 @@ Heal target priority:
 The Cleric can heal herself.
 
 If the Cleric self-heals, the UI does not draw an arrow from the Cleric to herself.
+
+
+Entire Unit Targeting
+
+EntireUnitTargetingRule exists as a currently unused targeting rule for future area actions.
+
+Potential future uses:
+- Heal all allies.
+- Damage all enemies.
+- Rain of arrows against the whole opposing unit.
+- Unit-wide buffs or debuffs.
+
+EntireUnitTargetingRule behavior:
+- If the action targets allies, it returns all living allies.
+- If the action targets enemies, it returns all living enemies.
+- It ignores Normal, Weakest, and Leader preferences.
+- It does not perform melee reachability checks.
+- It does not include defeated troops.
+
+The rule is intentionally simple for now and is not wired into any built-in class action profile.
 
 
 UI Targeting Presentation

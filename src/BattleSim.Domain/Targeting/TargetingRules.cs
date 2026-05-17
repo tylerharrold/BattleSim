@@ -8,7 +8,8 @@ public sealed class MeleeTargetingRule : ITargetingRule
     public TargetSelection SelectTargets(TargetingContext context, BattleActionDefinition action)
     {
         return TargetSelection.Single(
-            TargetingRuleHelpers.GetPreferredEnemy(context, canTargetAnyEnemy: false)
+            TargetingRuleHelpers.GetOnlyLivingEnemy(context)
+            ?? TargetingRuleHelpers.GetPreferredEnemy(context, canTargetAnyEnemy: false)
             ?? TargetingRuleHelpers.GetDefaultMeleeTarget(context));
     }
 }
@@ -44,6 +45,19 @@ public sealed class MostDamagedAllyTargetingRule : ITargetingRule
     }
 }
 
+public sealed class EntireUnitTargetingRule : ITargetingRule
+{
+    public TargetSelection SelectTargets(TargetingContext context, BattleActionDefinition action)
+    {
+        // Area actions are inherently broad and intentionally ignore Normal/Weakest/Leader preferences.
+        var targetUnit = action.TargetSide == TargetSide.Ally
+            ? context.Allies
+            : context.Enemies;
+
+        return TargetSelection.From(targetUnit.LivingTroops);
+    }
+}
+
 internal static class TargetingRuleHelpers
 {
     public static Troop? GetPreferredEnemy(TargetingContext context, bool canTargetAnyEnemy)
@@ -60,9 +74,19 @@ internal static class TargetingRuleHelpers
             return null;
         }
 
-        return canTargetAnyEnemy || IsMeleeReachable(context, preferredTarget)
-            ? preferredTarget
-            : null;
+        if (canTargetAnyEnemy || IsMeleeReachable(context, preferredTarget))
+        {
+            return preferredTarget;
+        }
+
+        return GetBlockingMeleeTarget(context, preferredTarget);
+    }
+
+    public static Troop? GetOnlyLivingEnemy(TargetingContext context)
+    {
+        var livingEnemies = context.Enemies.LivingTroops.Take(2).ToArray();
+
+        return livingEnemies.Length == 1 ? livingEnemies[0] : null;
     }
 
     public static Troop? GetDefaultRangedTarget(TargetingContext context)
@@ -114,6 +138,20 @@ internal static class TargetingRuleHelpers
     {
         return Math.Abs(target.Position.Row - context.Attacker.Position.Row) <= 1 &&
             GetFrontMostLivingEnemyInLane(context, target.Position.Row) == target;
+    }
+
+    private static Troop? GetBlockingMeleeTarget(TargetingContext context, Troop preferredTarget)
+    {
+        if (Math.Abs(preferredTarget.Position.Row - context.Attacker.Position.Row) > 1)
+        {
+            return null;
+        }
+
+        var frontMostTarget = GetFrontMostLivingEnemyInLane(context, preferredTarget.Position.Row);
+
+        return frontMostTarget is not null && frontMostTarget != preferredTarget
+            ? frontMostTarget
+            : null;
     }
 
     private static Troop? GetFrontMostLivingEnemyInLane(TargetingContext context, int row)
