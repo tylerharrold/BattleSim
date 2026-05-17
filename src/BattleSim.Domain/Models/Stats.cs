@@ -7,7 +7,8 @@ public sealed record Stats(
     int Speed,
     int Faith,
     int Wisdom,
-    int Dexterity)
+    int Dexterity,
+    int Luck)
 {
     public static Stats Default => new(
         MaxHitPoints: 20,
@@ -16,5 +17,6 @@ public sealed record Stats(
         Speed: 5,
         Faith: 5,
         Wisdom: 5,
-        Dexterity: 5);
+        Dexterity: 5,
+        Luck: 5);
 }

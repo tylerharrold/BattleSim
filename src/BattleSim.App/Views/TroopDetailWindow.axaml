@@ -41,7 +41,7 @@
         </Border>
 
         <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
-          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
             <TextBlock Text="Max HP" FontWeight="SemiBold" />
             <TextBlock Grid.Column="1" Text="{Binding Stats.MaxHitPoints}" />
 
@@ -62,6 +62,9 @@
 
             <TextBlock Grid.Row="6" Text="Dexterity" FontWeight="SemiBold" />
             <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding Stats.Dexterity}" />
+
+            <TextBlock Grid.Row="7" Text="Luck" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding Stats.Luck}" />
           </Grid>
         </Border>
 

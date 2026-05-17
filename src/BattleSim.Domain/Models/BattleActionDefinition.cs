@@ -11,4 +11,5 @@ public sealed record BattleActionDefinition(
     ITargetingRule TargetingRule,
     int BasePower,
     ActionStatScaling Scaling,
-    decimal Accuracy);
+    decimal Accuracy,
+    bool CanCrit);

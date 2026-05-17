@@ -188,7 +188,7 @@ public sealed class BattleEngine
     {
         if (action.ActionKind == ActionKind.Heal)
         {
-            var healing = CalculateActionAmount(attacker, action, target, appliesDefense: false);
+            var healing = RollActionAmount(attacker, action, target, appliesDefense: false);
             var missingHitPoints = target.Stats.MaxHitPoints - target.CurrentHitPoints;
             var actualHealing = Math.Min(healing, missingHitPoints);
             target.Heal(healing);
@@ -205,14 +205,29 @@ public sealed class BattleEngine
                 Intent: GetEventIntent(action));
         }
 
-        var damage = CalculateActionAmount(attacker, action, target, appliesDefense: true);
-        target.TakeDamage(damage);
+        var rollResult = ResolveDamageRoll(attacker, action, target);
+
+        if (!rollResult.DidHit)
+        {
+            return new BattleEvent(
+                $"{attacker.Name} uses {action.DisplayName} on {target.Name}, but misses. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+                attacker.Name,
+                target.Name,
+                Damage: 0,
+                ActorSide: attackerSide,
+                ActorPosition: attacker.Position,
+                TargetSide: targetSide,
+                TargetPosition: target.Position,
+                Intent: GetEventIntent(action));
+        }
+
+        target.TakeDamage(rollResult.TotalDamage);
 
         return new BattleEvent(
-            $"{attacker.Name} uses {action.DisplayName} on {target.Name} for {damage} damage. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
+            FormatDamageEvent(attacker, action, target, rollResult),
             attacker.Name,
             target.Name,
-            damage,
+            rollResult.TotalDamage,
             attackerSide,
             attacker.Position,
             targetSide,
@@ -220,10 +235,44 @@ public sealed class BattleEngine
             GetEventIntent(action));
     }
 
-    private int CalculateActionAmount(Troop attacker, BattleActionDefinition action, Troop target, bool appliesDefense)
+    private CombatRollResult ResolveDamageRoll(Troop attacker, BattleActionDefinition action, Troop target)
     {
-        // Accuracy is stored on the action for the next rules pass; this prototype still assumes actions land.
-        var scalingStat = GetScalingStat(attacker.Stats, action.Scaling.Stat);
+        var didHit = RollChance(action.Accuracy);
+        var wasLuckReroll = false;
+
+        if (!didHit && RollChance(CombatRollRules.GetLuckRerollChance(attacker.Stats.Luck)))
+        {
+            wasLuckReroll = true;
+            didHit = RollChance(action.Accuracy);
+        }
+
+        if (!didHit)
+        {
+            return new CombatRollResult(
+                DidHit: false,
+                WasLuckReroll: wasLuckReroll,
+                WasCritical: false,
+                BaseDamage: 0,
+                CriticalBonusDamage: 0);
+        }
+
+        var baseDamage = RollActionAmount(attacker, action, target, appliesDefense: true);
+        var wasCritical = action.CanCrit && RollChance(CombatRollRules.GetCriticalChance(attacker.Stats.Luck));
+        var criticalBonusDamage = wasCritical
+            ? Math.Max(1, (int)Math.Round(RollActionAmount(attacker, action, target, appliesDefense: true) * CombatRollRules.CriticalDamageScalar, MidpointRounding.AwayFromZero))
+            : 0;
+
+        return new CombatRollResult(
+            DidHit: true,
+            WasLuckReroll: wasLuckReroll,
+            WasCritical: wasCritical,
+            BaseDamage: baseDamage,
+            CriticalBonusDamage: criticalBonusDamage);
+    }
+
+    private int RollActionAmount(Troop attacker, BattleActionDefinition action, Troop target, bool appliesDefense)
+    {
+        var scalingStat = CombatRollRules.GetScalingStat(attacker.Stats, action.Scaling.Stat);
         var multiplier = action.Scaling.RollMultiplier(scalingStat, random);
         var scaledAmount = Math.Max(1, (int)Math.Round(action.BasePower * multiplier, MidpointRounding.AwayFromZero));
 
@@ -232,16 +281,17 @@ public sealed class BattleEngine
             : scaledAmount;
     }
 
-    private static int GetScalingStat(Stats stats, CombatStat stat)
+    private bool RollChance(decimal chance)
     {
-        return stat switch
-        {
-            CombatStat.Strength => stats.Strength,
-            CombatStat.Faith => stats.Faith,
-            CombatStat.Wisdom => stats.Wisdom,
-            CombatStat.Dexterity => stats.Dexterity,
-            _ => throw new ArgumentOutOfRangeException(nameof(stat), stat, null)
-        };
+        return (decimal)random.NextDouble() < Math.Clamp(chance, 0m, 1m);
+    }
+
+    private static string FormatDamageEvent(Troop attacker, BattleActionDefinition action, Troop target, CombatRollResult result)
+    {
+        var luckRerollText = result.WasLuckReroll ? " after a lucky retry" : string.Empty;
+        var critText = result.WasCritical ? $" Critical hit adds {result.CriticalBonusDamage} damage." : string.Empty;
+
+        return $"{attacker.Name} uses {action.DisplayName} on {target.Name}{luckRerollText} for {result.TotalDamage} damage.{critText} {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.";
     }
 
     private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)

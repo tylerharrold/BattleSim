@@ -56,12 +56,12 @@ public sealed class BattleEngineTests
         var result = engine.RunOneRound(state);
 
         Assert.Equal(2, result.State.RoundNumber);
-        Assert.Equal(9, result.Events.Count);
         Assert.Equal("Round 1 begins.", result.Events[0].Description);
         Assert.Equal($"{state.GetUnit(state.Plan.UnitOrder[0]).Name} attacks.", result.Events[1].Description);
-        Assert.Equal($"{state.GetUnit(state.Plan.UnitOrder[1]).Name} attacks.", result.Events[5].Description);
+        Assert.Contains(result.Events, battleEvent =>
+            battleEvent.Description == $"{state.GetUnit(state.Plan.UnitOrder[1]).Name} attacks.");
 
-        var expectedAttackers = state.Plan.UnitOrder
+        var plannedAttackers = state.Plan.UnitOrder
             .SelectMany(side => state.Plan.TroopOrders[side])
             .ToArray();
         var actualAttackers = result.Events
@@ -69,7 +69,7 @@ public sealed class BattleEngineTests
             .Select(battleEvent => battleEvent.ActorName!)
             .ToArray();
 
-        Assert.Equal(expectedAttackers, actualAttackers);
+        Assert.Equal(actualAttackers, plannedAttackers.Where(actualAttackers.Contains));
     }
 
     [Fact]
@@ -183,6 +183,74 @@ public sealed class BattleEngineTests
         Assert.InRange(BuiltInBattleActions.BowShot.Accuracy, 0m, 1m);
         Assert.InRange(BuiltInBattleActions.Firebolt.Accuracy, 0m, 1m);
         Assert.Equal(1.0m, BuiltInBattleActions.Heal.Accuracy);
+    }
+
+    [Fact]
+    public void CombatRollRules_CalculateLuckRerollChance()
+    {
+        Assert.Equal(0.02m, CombatRollRules.GetLuckRerollChance(0));
+        Assert.Equal(0.0850m, CombatRollRules.GetLuckRerollChance(10));
+        Assert.Equal(0.1500m, CombatRollRules.GetLuckRerollChance(20));
+        Assert.Equal(0.2150m, CombatRollRules.GetLuckRerollChance(30));
+        Assert.Equal(0.3450m, CombatRollRules.GetLuckRerollChance(50));
+        Assert.Equal(0.50m, CombatRollRules.GetLuckRerollChance(100));
+    }
+
+    [Fact]
+    public void CombatRollRules_CalculateCriticalChance()
+    {
+        Assert.Equal(0.03m, CombatRollRules.GetCriticalChance(0));
+        Assert.Equal(0.070m, CombatRollRules.GetCriticalChance(10));
+        Assert.Equal(0.110m, CombatRollRules.GetCriticalChance(20));
+        Assert.Equal(0.150m, CombatRollRules.GetCriticalChance(30));
+        Assert.Equal(0.230m, CombatRollRules.GetCriticalChance(50));
+        Assert.Equal(0.40m, CombatRollRules.GetCriticalChance(100));
+    }
+
+    [Fact]
+    public void BuiltInActions_DeclareWhetherTheyCanCrit()
+    {
+        Assert.True(BuiltInBattleActions.Slash.CanCrit);
+        Assert.True(BuiltInBattleActions.StaffBonk.CanCrit);
+        Assert.True(BuiltInBattleActions.BowShot.CanCrit);
+        Assert.False(BuiltInBattleActions.Firebolt.CanCrit);
+        Assert.False(BuiltInBattleActions.Heal.CanCrit);
+    }
+
+    [Fact]
+    public void RunNextAttack_MissedDamageActionLogsMissAndDoesNoDamage()
+    {
+        var engine = new BattleEngine(new Random(1));
+        var missAction = BuiltInBattleActions.Slash with { Accuracy = 0m };
+        var attackerDefinition = BuiltInTroopClasses.Fighter with
+        {
+            ActionProfile = new RowActionProfile(
+                Front: new[] { missAction },
+                Middle: new[] { missAction },
+                Back: new[] { missAction })
+        };
+        var attacker = new Troop("Attacker", attackerDefinition, new GridPosition(1, 2));
+        var target = new Troop("Target", BuiltInTroopClasses.Fighter, new GridPosition(1, 0));
+        attacker.SetBattleAttackLimit(1);
+        target.SetBattleAttackLimit(1);
+        var state = new BattleState(
+            new Unit("Attackers", new[] { attacker }),
+            new Unit("Targets", new[] { target }),
+            new BattlePlan(
+                new[] { BattleSide.Left, BattleSide.Right },
+                new Dictionary<BattleSide, IReadOnlyList<string>>
+                {
+                    [BattleSide.Left] = new[] { attacker.Name },
+                    [BattleSide.Right] = new[] { target.Name }
+                }));
+
+        var result = engine.RunNextAttack(state);
+        var attackEvent = result.Events.Last(battleEvent => battleEvent.ActorName is not null);
+        var resultTarget = result.State.RightUnit.Troops.Single();
+
+        Assert.Contains("misses", attackEvent.Description);
+        Assert.Equal(0, attackEvent.Damage);
+        Assert.Equal(target.Stats.MaxHitPoints, resultTarget.CurrentHitPoints);
     }
 
     [Fact]
