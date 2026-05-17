@@ -200,6 +200,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         var nextAction = !troop.IsDefeated && troop.RemainingBattleAttacks > 0 && usedActionCount < actions.Count
             ? actions[usedActionCount].DisplayName
             : "None";
+        var actionRows = actions
+            .Select((action, index) => new TroopDetailActionViewModel(
+                index + 1,
+                action.DisplayName,
+                index < usedActionCount ? "Used" : index == usedActionCount && troop.RemainingBattleAttacks > 0 ? "Next" : "Pending",
+                index < usedActionCount ? Brushes.Gray : Brushes.Black))
+            .ToArray();
 
         return new TroopDetailViewModel(
             troop.Name,
@@ -211,7 +218,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             $"{troop.CurrentHitPoints}/{troop.Stats.MaxHitPoints} HP",
             $"{troop.RemainingBattleAttacks}/{troop.MaxBattleAttacks} attacks left",
             nextAction,
-            string.Join(", ", actions.Select(action => action.DisplayName)),
+            actionRows,
             troop.Stats);
     }
 

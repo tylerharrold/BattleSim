@@ -14,5 +14,11 @@ public sealed record TroopDetailViewModel(
     string HitPointsLabel,
     string ActionCountLabel,
     string NextActionLabel,
-    string ActionSequenceLabel,
+    IReadOnlyList<TroopDetailActionViewModel> CurrentRowActions,
     Stats Stats);
+
+public sealed record TroopDetailActionViewModel(
+    int Number,
+    string Name,
+    string StatusLabel,
+    IBrush TextBrush);

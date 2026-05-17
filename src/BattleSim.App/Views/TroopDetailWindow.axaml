@@ -58,7 +58,17 @@
       <Border BorderBrush="#CCC" BorderThickness="1" Padding="10">
         <StackPanel Spacing="6">
           <TextBlock Text="Current Row Actions" FontWeight="SemiBold" />
-          <TextBlock Text="{Binding ActionSequenceLabel}" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding CurrentRowActions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8" Margin="0,1">
+                  <TextBlock Text="{Binding Number}" Foreground="{Binding TextBrush}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{Binding TextBrush}" />
+                  <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Foreground="{Binding TextBrush}" FontSize="11" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
       </Border>
 
