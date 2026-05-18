@@ -748,6 +748,171 @@ public sealed class BattleEngineTests
             state.MoveTroop(BattleSide.Left, "Blue Fighter", new GridPosition(1, 2)));
     }
 
+    [Fact]
+    public void UnitTemplateRepository_LoadsValidTemplateFromJson()
+    {
+        var path = FindRepoFile("src/BattleSim.App/Data/UnitTemplates/blue-balanced-test.json");
+        var repository = new UnitTemplateRepository(Path.GetDirectoryName(path)!, BuiltInTroopClasses.ById);
+
+        var templates = repository.LoadAll();
+        var template = templates.Single(candidate => candidate.Id == "blue-balanced-test");
+
+        Assert.Equal("Blue Unit", template.Name);
+        Assert.Equal(3, template.Troops.Count);
+        Assert.Contains(template.Troops, troop => troop.Name == "Blue Cleric" && troop.IsLeader);
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsZeroTroops()
+    {
+        var template = CreateTemplate(Array.Empty<UnitTemplateTroop>());
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsMoreThanFiveTroops()
+    {
+        var troops = Enumerable.Range(0, 6)
+            .Select(index => CreateTemplateTroop($"fighter-{index}", row: index / 3, column: index % 3))
+            .ToArray();
+        var template = CreateTemplate(troops);
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsDuplicateGridPositions()
+    {
+        var template = CreateTemplate(
+        [
+            CreateTemplateTroop("fighter-1", row: 1, column: 1),
+            CreateTemplateTroop("fighter-2", row: 1, column: 1)
+        ]);
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsOutOfBoundsPositions()
+    {
+        var template = CreateTemplate([CreateTemplateTroop("fighter-1", row: 3, column: 1)]);
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsUnknownTroopClassId()
+    {
+        var template = CreateTemplate(
+        [
+            CreateTemplateTroop("mystery-1", row: 1, column: 1, troopClassId: "mystery")
+        ]);
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitTemplateValidation_RejectsMoreThanOneLeader()
+    {
+        var template = CreateTemplate(
+        [
+            CreateTemplateTroop("fighter-1", row: 0, column: 0, isLeader: true),
+            CreateTemplateTroop("fighter-2", row: 1, column: 0, isLeader: true)
+        ]);
+
+        Assert.Throws<UnitTemplateValidationException>(() =>
+            UnitTemplateValidator.ValidateAndThrow(template, BuiltInTroopClasses.ById));
+    }
+
+    [Fact]
+    public void UnitFactory_CreatesRuntimeTroopsFromClassDefinitions()
+    {
+        var template = CreateTemplate(
+        [
+            CreateTemplateTroop("archer-1", "Template Archer", "archer", row: 1, column: 0, isLeader: true)
+        ]);
+        var factory = new UnitFactory(BuiltInTroopClasses.ById);
+
+        var unit = factory.Create(template, BattleSide.Left);
+        var troop = unit.Troops.Single();
+
+        Assert.Equal("Template Archer", troop.Name);
+        Assert.Equal(BuiltInTroopClasses.Archer.Id, troop.ClassDefinition.Id);
+        Assert.Equal(BuiltInTroopClasses.Archer.BaseStats, troop.Stats);
+        Assert.Equal(BuiltInTroopClasses.Archer.PortraitAssetPath, troop.ClassDefinition.PortraitAssetPath);
+        Assert.Equal(new GridPosition(1, 2), troop.Position);
+        Assert.Equal("Template Archer", unit.LeaderName);
+    }
+
+    [Fact]
+    public void UnitFactory_MirrorsLocalFormationForOpposingSides()
+    {
+        var frontLeftTroop = CreateTemplateTroop("fighter-1", row: 0, column: 0);
+
+        Assert.Equal(new GridPosition(0, 2), UnitFactory.ToRuntimePosition(frontLeftTroop, BattleSide.Left));
+        Assert.Equal(new GridPosition(2, 0), UnitFactory.ToRuntimePosition(frontLeftTroop, BattleSide.Right));
+    }
+
+    [Fact]
+    public void BattleState_CreateFromTemplates_AllowsSideSwappingAndMirrorMatches()
+    {
+        var blueTemplate = BattleState.CreateDefaultLeftTemplate();
+        var state = BattleState.CreateFromTemplates(blueTemplate, blueTemplate, seed: 1);
+
+        Assert.Equal("Blue Unit", state.LeftUnit.Name);
+        Assert.Equal("Blue Unit", state.RightUnit.Name);
+        Assert.Contains(state.LeftUnit.Troops, troop => troop.Name == "Blue Fighter" && troop.Position == new GridPosition(1, 0));
+        Assert.Contains(state.RightUnit.Troops, troop => troop.Name == "Blue Fighter" && troop.Position == new GridPosition(1, 2));
+    }
+
+    [Fact]
+    public void ReplaceUnitFromTemplate_PreservesOpposingPreBattleFormation()
+    {
+        var state = BattleState.CreateDefault(seed: 1)
+            .RotateFormationClockwise(BattleSide.Right);
+        var rightPositionsBeforeReplacement = state.RightUnit.Troops
+            .ToDictionary(troop => troop.Name, troop => troop.Position);
+
+        var replacementTemplate = CreateTemplate(
+        [
+            CreateTemplateTroop("fighter-leader", "Replacement Fighter", "fighter", row: 1, column: 0, isLeader: true)
+        ]);
+        var replacedState = state.ReplaceUnitFromTemplate(BattleSide.Left, replacementTemplate, seed: 1);
+
+        Assert.Equal(rightPositionsBeforeReplacement, replacedState.RightUnit.Troops.ToDictionary(troop => troop.Name, troop => troop.Position));
+        Assert.Single(replacedState.LeftUnit.Troops);
+        Assert.Equal("Replacement Fighter", replacedState.LeftUnit.Troops.Single().Name);
+    }
+
+    [Fact]
+    public void ReplaceUnitFromTemplate_IsBlockedAfterBattleStarts()
+    {
+        var engine = new BattleEngine();
+        var state = engine.RunNextAttack(BattleState.CreateDefault(seed: 1)).State;
+
+        Assert.Throws<InvalidOperationException>(() =>
+            state.ReplaceUnitFromTemplate(BattleSide.Left, BattleState.CreateDefaultLeftTemplate()));
+    }
+
+    [Fact]
+    public void UnitTemplate_DoesNotStoreRuntimeBattleState()
+    {
+        var templateTroopProperties = typeof(UnitTemplateTroop)
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.DoesNotContain("CurrentHitPoints", templateTroopProperties);
+        Assert.DoesNotContain("RemainingBattleAttacks", templateTroopProperties);
+        Assert.DoesNotContain("MaxBattleAttacks", templateTroopProperties);
+    }
+
     private static string FindRepoFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -765,6 +930,35 @@ public sealed class BattleEngineTests
         }
 
         throw new FileNotFoundException($"Could not find {relativePath} from {AppContext.BaseDirectory}.");
+    }
+
+    private static UnitTemplate CreateTemplate(IReadOnlyList<UnitTemplateTroop> troops)
+    {
+        return new UnitTemplate
+        {
+            Id = "test-unit",
+            Name = "Test Unit",
+            Troops = troops
+        };
+    }
+
+    private static UnitTemplateTroop CreateTemplateTroop(
+        string slotId,
+        string name = "Test Fighter",
+        string troopClassId = "fighter",
+        int row = 1,
+        int column = 1,
+        bool isLeader = false)
+    {
+        return new UnitTemplateTroop
+        {
+            SlotId = slotId,
+            Name = name,
+            TroopClassId = troopClassId,
+            Row = row,
+            Column = column,
+            IsLeader = isLeader
+        };
     }
 
     private static string[] GetActionNames(Troop troop, BattleSide side)

@@ -31,16 +31,27 @@ public sealed partial class MainWindowViewModel : ObservableObject
     // The view model adapts engine state into bindable UI data without owning combat rules.
     private readonly BattleEngine battleEngine = new();
     private readonly Dictionary<string, IImage> portraitCache = new();
+    private readonly UnitTemplate fallbackLeftTemplate = BattleState.CreateDefaultLeftTemplate();
+    private readonly UnitTemplate fallbackRightTemplate = BattleState.CreateDefaultRightTemplate();
     private DraggedTroop? draggedTroop;
     private DropPreview? dropPreview;
+    private bool isSelectingInitialTemplates;
 
     private BattleState battleState = BattleState.CreateDefault();
 
     public MainWindowViewModel()
     {
+        isSelectingInitialTemplates = true;
+        LoadUnitTemplates();
+        SelectedLeftUnitTemplate = FindTemplateOption(fallbackLeftTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
+        SelectedRightUnitTemplate = FindTemplateOption(fallbackRightTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
+        isSelectingInitialTemplates = false;
+        battleState = CreateBattleStateFromSelectedTemplates();
         RebuildSetupLog("Battle initialized.");
         RefreshFromState();
     }
+
+    public ObservableCollection<UnitTemplateOptionViewModel> UnitTemplateOptions { get; } = new();
 
     public ObservableCollection<GridCellViewModel> LeftGridCells { get; } = new();
 
@@ -49,10 +60,16 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ObservableCollection<BattleLogEntryViewModel> BattleLog { get; } = new();
 
     [ObservableProperty]
-    private string leftUnitName = string.Empty;
+    private UnitTemplateOptionViewModel? selectedLeftUnitTemplate;
 
     [ObservableProperty]
-    private string rightUnitName = string.Empty;
+    private UnitTemplateOptionViewModel? selectedRightUnitTemplate;
+
+    [ObservableProperty]
+    private string leftLoadedUnitName = string.Empty;
+
+    [ObservableProperty]
+    private string rightLoadedUnitName = string.Empty;
 
     [ObservableProperty]
     private string roundLabel = string.Empty;
@@ -80,6 +97,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRotateFormations))]
+    [NotifyPropertyChangedFor(nameof(CanChangeUnitTemplates))]
     private bool battleHasStarted;
 
     [ObservableProperty]
@@ -110,6 +128,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private double draggedPortraitTop;
 
     public bool CanRotateFormations => !BattleHasStarted;
+
+    public bool CanChangeUnitTemplates => !BattleHasStarted;
 
     public event Action<BattleLogEntryViewModel>? AttackArrowRequested;
 
@@ -169,6 +189,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
         }
 
         HideAttackArrow();
+    }
+
+    partial void OnSelectedLeftUnitTemplateChanged(UnitTemplateOptionViewModel? value)
+    {
+        if (!isSelectingInitialTemplates && value is not null)
+        {
+            ReplaceUnitFromTemplate(BattleSide.Left, value.Template, "Blue unit template loaded.");
+        }
+    }
+
+    partial void OnSelectedRightUnitTemplateChanged(UnitTemplateOptionViewModel? value)
+    {
+        if (!isSelectingInitialTemplates && value is not null)
+        {
+            ReplaceUnitFromTemplate(BattleSide.Right, value.Template, "Red unit template loaded.");
+        }
     }
 
     private void ApplyStepResult(BattleStepResult result, bool selectLatestAttack)
@@ -338,18 +374,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ResetBattle()
     {
-        battleState = BattleState.CreateDefault();
-        BattleHasStarted = false;
-        ClearTroopDrag();
-        SelectedBattleLogEntry = null;
-        RebuildSetupLog("Battle reset.");
-        RefreshFromState();
+        ResetBattleFromSelectedTemplates("Battle reset.");
     }
 
     private void RefreshFromState()
     {
-        LeftUnitName = battleState.LeftUnit.Name;
-        RightUnitName = battleState.RightUnit.Name;
+        LeftLoadedUnitName = battleState.LeftUnit.Name;
+        RightLoadedUnitName = battleState.RightUnit.Name;
         RoundLabel = $"Round {battleState.RoundNumber}";
         RefreshTargetingOrderButtons();
 
@@ -472,6 +503,76 @@ public sealed partial class MainWindowViewModel : ObservableObject
         BattleLog.Clear();
         BattleLog.Add(new BattleLogEntryViewModel(firstLine));
         AddSetupEventsToLog();
+    }
+
+    private void LoadUnitTemplates()
+    {
+        var loadedTemplates = LoadTemplatesFromDisk();
+        var templates = loadedTemplates.Count > 0
+            ? loadedTemplates
+            : new[] { fallbackLeftTemplate, fallbackRightTemplate };
+
+        foreach (var template in templates)
+        {
+            UnitTemplateOptions.Add(new UnitTemplateOptionViewModel(template));
+        }
+    }
+
+    private IReadOnlyList<UnitTemplate> LoadTemplatesFromDisk()
+    {
+        var templateDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "UnitTemplates");
+        var repository = new UnitTemplateRepository(templateDirectory, BuiltInTroopClasses.ById);
+
+        try
+        {
+            return repository.LoadAll();
+        }
+        catch (UnitTemplateValidationException)
+        {
+            return Array.Empty<UnitTemplate>();
+        }
+        catch (IOException)
+        {
+            return Array.Empty<UnitTemplate>();
+        }
+    }
+
+    private UnitTemplateOptionViewModel? FindTemplateOption(string templateId)
+    {
+        return UnitTemplateOptions.FirstOrDefault(option =>
+            string.Equals(option.Id, templateId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private BattleState CreateBattleStateFromSelectedTemplates()
+    {
+        var leftTemplate = SelectedLeftUnitTemplate?.Template ?? fallbackLeftTemplate;
+        var rightTemplate = SelectedRightUnitTemplate?.Template ?? fallbackRightTemplate;
+
+        return BattleState.CreateFromTemplates(leftTemplate, rightTemplate);
+    }
+
+    private void ResetBattleFromSelectedTemplates(string logLine)
+    {
+        battleState = CreateBattleStateFromSelectedTemplates();
+        BattleHasStarted = false;
+        ClearTroopDrag();
+        SelectedBattleLogEntry = null;
+        RebuildSetupLog(logLine);
+        RefreshFromState();
+    }
+
+    private void ReplaceUnitFromTemplate(BattleSide side, UnitTemplate template, string logLine)
+    {
+        if (BattleHasStarted)
+        {
+            return;
+        }
+
+        battleState = battleState.ReplaceUnitFromTemplate(side, template);
+        ClearTroopDrag();
+        SelectedBattleLogEntry = null;
+        RebuildSetupLog(logLine);
+        RefreshFromState();
     }
 
     private void RotateFormation(BattleSide side, string logLine)

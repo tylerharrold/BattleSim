@@ -1,0 +1,9 @@
+{
+  "id": "red-balanced-test",
+  "name": "Red Unit",
+  "troops": [
+    { "slotId": "fighter-leader", "name": "Red Fighter", "troopClassId": "fighter", "row": 1, "column": 2, "isLeader": true },
+    { "slotId": "wizard-1", "name": "Red Wizard", "troopClassId": "wizard", "row": 2, "column": 1 },
+    { "slotId": "archer-1", "name": "Red Archer", "troopClassId": "archer", "row": 0, "column": 1 }
+  ]
+}

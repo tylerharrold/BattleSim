@@ -25,4 +25,8 @@
   <ItemGroup>
     <AvaloniaResource Include="..\..\Assets\Images\Portraits\*.png" Link="Assets\Images\Portraits\%(Filename)%(Extension)" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Data\UnitTemplates\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

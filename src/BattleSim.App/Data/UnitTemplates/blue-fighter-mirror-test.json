@@ -1,0 +1,9 @@
+{
+  "id": "blue-fighter-mirror-test",
+  "name": "Blue Fighter Mirror Test",
+  "troops": [
+    { "slotId": "fighter-leader", "name": "Mirror Fighter", "troopClassId": "fighter", "row": 1, "column": 0, "isLeader": true },
+    { "slotId": "archer-1", "name": "Mirror Archer", "troopClassId": "archer", "row": 0, "column": 1 },
+    { "slotId": "cleric-1", "name": "Mirror Cleric", "troopClassId": "cleric", "row": 2, "column": 1 }
+  ]
+}

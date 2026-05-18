@@ -17,18 +17,42 @@
     </StackPanel>
 
     <Grid Grid.Row="1" x:Name="BattleGridLayer">
-      <Grid x:Name="BattleGrid" ColumnDefinitions="*,*" RowDefinitions="Auto,*,Auto" ColumnSpacing="16" RowSpacing="8">
+      <Grid x:Name="BattleGrid" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,*,Auto" ColumnSpacing="16" RowSpacing="8">
         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="{Binding LeftUnitName}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="Blue Side" FontSize="18" FontWeight="SemiBold" />
           <Button Content="Rotate" Command="{Binding RotateLeftFormationCommand}" IsEnabled="{Binding CanRotateFormations}" />
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <TextBlock Text="{Binding RightUnitName}" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="Red Side" FontSize="18" FontWeight="SemiBold" />
           <Button Content="Rotate" Command="{Binding RotateRightFormationCommand}" IsEnabled="{Binding CanRotateFormations}" />
         </StackPanel>
 
-        <ItemsControl x:Name="LeftFormationGrid" Grid.Row="1" ItemsSource="{Binding LeftGridCells}">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding LeftLoadedUnitName}"
+                     VerticalAlignment="Center"
+                     FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis" />
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{Binding UnitTemplateOptions}"
+                    SelectedItem="{Binding SelectedLeftUnitTemplate, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChangeUnitTemplates}"
+                    MinWidth="150" />
+        </Grid>
+
+        <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+          <TextBlock Text="{Binding RightLoadedUnitName}"
+                     VerticalAlignment="Center"
+                     FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis" />
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{Binding UnitTemplateOptions}"
+                    SelectedItem="{Binding SelectedRightUnitTemplate, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChangeUnitTemplates}"
+                    MinWidth="150" />
+        </Grid>
+
+        <ItemsControl x:Name="LeftFormationGrid" Grid.Row="2" ItemsSource="{Binding LeftGridCells}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <UniformGrid Rows="3" Columns="3" />
@@ -68,7 +92,7 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <ItemsControl x:Name="RightFormationGrid" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding RightGridCells}">
+        <ItemsControl x:Name="RightFormationGrid" Grid.Row="2" Grid.Column="1" ItemsSource="{Binding RightGridCells}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <UniformGrid Rows="3" Columns="3" />
@@ -108,7 +132,7 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
           <Button Content="Normal"
                   MinWidth="72"
                   Background="{Binding LeftNormalOrderBackground}"
@@ -126,7 +150,7 @@
                   CommandParameter="{x:Static enums:TargetingPreference.Leader}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
           <Button Content="Normal"
                   MinWidth="72"
                   Background="{Binding RightNormalOrderBackground}"

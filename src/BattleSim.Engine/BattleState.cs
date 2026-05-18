@@ -5,6 +5,8 @@ namespace BattleSim.Engine;
 
 public sealed class BattleState
 {
+    private static readonly UnitFactory DefaultUnitFactory = new(BuiltInTroopClasses.ById);
+
     public BattleState(
         Unit leftUnit,
         Unit rightUnit,
@@ -155,22 +157,34 @@ public sealed class BattleState
             : new BattleState(LeftUnit, RightUnit.WithTargetingPreference(targetingPreference), Plan, RoundNumber, UnitOrderIndex, TroopOrderIndex, HasRoundStarted);
     }
 
+    public BattleState ReplaceUnitFromTemplate(BattleSide side, UnitTemplate template, int? seed = null)
+    {
+        if (HasBattleStarted)
+        {
+            throw new InvalidOperationException("Unit templates can only be changed before battle starts.");
+        }
+
+        var replacementUnit = DefaultUnitFactory.Create(template, side)
+            .WithTargetingPreference(GetUnit(side).TargetingPreference);
+        ApplyBattleAttackLimits(replacementUnit, side);
+
+        var left = side == BattleSide.Left ? replacementUnit : LeftUnit.Clone();
+        var right = side == BattleSide.Right ? replacementUnit : RightUnit.Clone();
+        var random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+
+        return new BattleState(left, right, CreateBattlePlan(left, right, random));
+    }
+
     public static BattleState CreateDefault(int? seed = null)
     {
-        // The engine owns sample battle creation so the UI can reset without embedding combat setup rules.
-        var left = new Unit("Blue Unit", new[]
-        {
-            new Troop("Blue Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 0)),
-            new Troop("Blue Archer", BuiltInTroopClasses.Archer, new GridPosition(0, 1)),
-            new Troop("Blue Cleric", BuiltInTroopClasses.Cleric, new GridPosition(2, 1))
-        }, leaderName: "Blue Cleric");
+        return CreateFromTemplates(CreateDefaultLeftTemplate(), CreateDefaultRightTemplate(), seed);
+    }
 
-        var right = new Unit("Red Unit", new[]
-        {
-            new Troop("Red Fighter", BuiltInTroopClasses.Fighter, new GridPosition(1, 2)),
-            new Troop("Red Wizard", BuiltInTroopClasses.Wizard, new GridPosition(0, 1)),
-            new Troop("Red Archer", BuiltInTroopClasses.Archer, new GridPosition(2, 1))
-        }, leaderName: "Red Fighter");
+    public static BattleState CreateFromTemplates(UnitTemplate leftTemplate, UnitTemplate rightTemplate, int? seed = null)
+    {
+        // The engine owns runtime battle creation so the UI can reset without embedding combat setup rules.
+        var left = DefaultUnitFactory.Create(leftTemplate, BattleSide.Left);
+        var right = DefaultUnitFactory.Create(rightTemplate, BattleSide.Right);
 
         var random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
         ApplyBattleAttackLimits(left, BattleSide.Left);
@@ -178,6 +192,80 @@ public sealed class BattleState
         var plan = CreateBattlePlan(left, right, random);
 
         return new BattleState(left, right, plan);
+    }
+
+    public static UnitTemplate CreateDefaultLeftTemplate()
+    {
+        return new UnitTemplate
+        {
+            Id = "blue-balanced-test",
+            Name = "Blue Unit",
+            Troops =
+            [
+                new UnitTemplateTroop
+                {
+                    SlotId = "fighter-1",
+                    Name = "Blue Fighter",
+                    TroopClassId = BuiltInTroopClasses.Fighter.Id,
+                    Row = 1,
+                    Column = 2
+                },
+                new UnitTemplateTroop
+                {
+                    SlotId = "archer-1",
+                    Name = "Blue Archer",
+                    TroopClassId = BuiltInTroopClasses.Archer.Id,
+                    Row = 0,
+                    Column = 1
+                },
+                new UnitTemplateTroop
+                {
+                    SlotId = "cleric-leader",
+                    Name = "Blue Cleric",
+                    TroopClassId = BuiltInTroopClasses.Cleric.Id,
+                    Row = 2,
+                    Column = 1,
+                    IsLeader = true
+                }
+            ]
+        };
+    }
+
+    public static UnitTemplate CreateDefaultRightTemplate()
+    {
+        return new UnitTemplate
+        {
+            Id = "red-balanced-test",
+            Name = "Red Unit",
+            Troops =
+            [
+                new UnitTemplateTroop
+                {
+                    SlotId = "fighter-leader",
+                    Name = "Red Fighter",
+                    TroopClassId = BuiltInTroopClasses.Fighter.Id,
+                    Row = 1,
+                    Column = 2,
+                    IsLeader = true
+                },
+                new UnitTemplateTroop
+                {
+                    SlotId = "wizard-1",
+                    Name = "Red Wizard",
+                    TroopClassId = BuiltInTroopClasses.Wizard.Id,
+                    Row = 2,
+                    Column = 1
+                },
+                new UnitTemplateTroop
+                {
+                    SlotId = "archer-1",
+                    Name = "Red Archer",
+                    TroopClassId = BuiltInTroopClasses.Archer.Id,
+                    Row = 0,
+                    Column = 1
+                }
+            ]
+        };
     }
 
     private static BattlePlan CreateBattlePlan(Unit left, Unit right, Random random)

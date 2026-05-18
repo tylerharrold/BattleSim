@@ -44,6 +44,22 @@ public static class BuiltInTroopClasses
             Back: Repeat(BuiltInBattleActions.Firebolt, 2)),
         "avares://BattleSim.App/Assets/Images/Portraits/wizard.png");
 
+    public static IReadOnlyList<TroopClassDefinition> All { get; } =
+    [
+        Fighter,
+        Archer,
+        Cleric,
+        Wizard
+    ];
+
+    public static IReadOnlyDictionary<string, TroopClassDefinition> ById { get; } =
+        All.ToDictionary(troopClass => troopClass.Id, StringComparer.OrdinalIgnoreCase);
+
+    public static bool TryFindById(string id, out TroopClassDefinition troopClass)
+    {
+        return ById.TryGetValue(id, out troopClass!);
+    }
+
     public static TroopClassDefinition FromLegacyEnum(TroopClass troopClass)
     {
         return troopClass switch
