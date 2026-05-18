@@ -28,28 +28,30 @@
           <Button Content="Rotate" Command="{Binding RotateRightFormationCommand}" IsEnabled="{Binding CanRotateFormations}" />
         </StackPanel>
 
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
           <TextBlock Text="{Binding LeftLoadedUnitName}"
                      VerticalAlignment="Center"
                      FontWeight="SemiBold"
-                     TextTrimming="CharacterEllipsis" />
+                     TextTrimming="CharacterEllipsis"
+                     TextWrapping="NoWrap" />
           <ComboBox Grid.Column="1"
                     ItemsSource="{Binding UnitTemplateOptions}"
                     SelectedItem="{Binding SelectedLeftUnitTemplate, Mode=TwoWay}"
                     IsEnabled="{Binding CanChangeUnitTemplates}"
-                    MinWidth="150" />
+                    Width="170" />
         </Grid>
 
-        <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+        <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
           <TextBlock Text="{Binding RightLoadedUnitName}"
                      VerticalAlignment="Center"
                      FontWeight="SemiBold"
-                     TextTrimming="CharacterEllipsis" />
+                     TextTrimming="CharacterEllipsis"
+                     TextWrapping="NoWrap" />
           <ComboBox Grid.Column="1"
                     ItemsSource="{Binding UnitTemplateOptions}"
                     SelectedItem="{Binding SelectedRightUnitTemplate, Mode=TwoWay}"
                     IsEnabled="{Binding CanChangeUnitTemplates}"
-                    MinWidth="150" />
+                    Width="170" />
         </Grid>
 
         <ItemsControl x:Name="LeftFormationGrid" Grid.Row="2" ItemsSource="{Binding LeftGridCells}">
