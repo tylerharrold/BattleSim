@@ -216,10 +216,14 @@
     <Border Grid.Row="1" Grid.Column="1" BorderBrush="#999" BorderThickness="1" Padding="10">
       <DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="Battle Log" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
-        <ListBox ItemsSource="{Binding BattleLog}" SelectedItem="{Binding SelectedBattleLogEntry, Mode=TwoWay}">
+        <ListBox ItemsSource="{Binding BattleLog}"
+                 SelectedItem="{Binding SelectedBattleLogEntry, Mode=TwoWay}"
+                 Height="392"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
           <ListBox.ItemTemplate>
             <DataTemplate>
-              <TextBlock Text="{Binding Description}" />
+              <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
