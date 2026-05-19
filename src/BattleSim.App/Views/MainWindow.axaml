@@ -110,7 +110,6 @@
                            Height="38"
                            Stretch="Uniform" />
                   </Border>
-                  <TextBlock Text="{Binding ClassName}" FontSize="12" />
                   <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
                   <TextBlock Text="{Binding AttacksLabel}" FontSize="12" />
                 </StackPanel>
@@ -151,7 +150,6 @@
                            Height="38"
                            Stretch="Uniform" />
                   </Border>
-                  <TextBlock Text="{Binding ClassName}" FontSize="12" />
                   <TextBlock Text="{Binding HitPointsLabel}" FontSize="12" />
                   <TextBlock Text="{Binding AttacksLabel}" FontSize="12" />
                 </StackPanel>
