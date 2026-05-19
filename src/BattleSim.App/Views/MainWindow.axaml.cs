@@ -278,21 +278,25 @@ public sealed partial class MainWindow : Window
     {
         position = default;
 
-        if (BuilderGridLayer.Bounds.Width <= 0 || BuilderGridLayer.Bounds.Height <= 0)
+        var gridOrigin = BuilderFormationGrid.TranslatePoint(new Point(0, 0), BuilderGridLayer);
+        if (gridOrigin is null || BuilderFormationGrid.Bounds.Width <= 0 || BuilderFormationGrid.Bounds.Height <= 0)
         {
             return false;
         }
 
-        if (point.X < 0 ||
-            point.Y < 0 ||
-            point.X > BuilderGridLayer.Bounds.Width ||
-            point.Y > BuilderGridLayer.Bounds.Height)
+        var localX = point.X - gridOrigin.Value.X;
+        var localY = point.Y - gridOrigin.Value.Y;
+
+        if (localX < 0 ||
+            localY < 0 ||
+            localX > BuilderFormationGrid.Bounds.Width ||
+            localY > BuilderFormationGrid.Bounds.Height)
         {
             return false;
         }
 
-        var column = Math.Min(GridSize - 1, (int)(point.X / (BuilderGridLayer.Bounds.Width / GridSize)));
-        var row = Math.Min(GridSize - 1, (int)(point.Y / (BuilderGridLayer.Bounds.Height / GridSize)));
+        var column = Math.Min(GridSize - 1, (int)(localX / (BuilderFormationGrid.Bounds.Width / GridSize)));
+        var row = Math.Min(GridSize - 1, (int)(localY / (BuilderFormationGrid.Bounds.Height / GridSize)));
         position = new GridPosition(row, column);
         return true;
     }

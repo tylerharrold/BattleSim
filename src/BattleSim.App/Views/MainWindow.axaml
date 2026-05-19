@@ -2,14 +2,37 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:enums="clr-namespace:BattleSim.Domain.Enums;assembly=BattleSim.Domain"
         x:Class="BattleSim.App.Views.MainWindow"
-        Width="980"
-        Height="620"
-        MinWidth="760"
-        MinHeight="500"
+        Width="1200"
+        Height="820"
+        MinWidth="1050"
+        MinHeight="720"
         Title="BattleSim">
+  <Window.Styles>
+    <Style Selector="ItemsControl.formationGrid">
+      <Setter Property="Width" Value="324" />
+      <Setter Property="Height" Value="324" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Border.formationGridFrame">
+      <Setter Property="Width" Value="326" />
+      <Setter Property="Height" Value="326" />
+      <Setter Property="BorderBrush" Value="#555" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="White" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.formationCell">
+      <Setter Property="Width" Value="108" />
+      <Setter Property="Height" Value="108" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+  </Window.Styles>
   <TabControl Margin="16">
     <TabItem Header="Battle">
-  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,320" ColumnSpacing="16" RowSpacing="16">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+  <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,320" ColumnSpacing="16" RowSpacing="16" MinWidth="1000">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
       <Button Content="Run Next Attack" Command="{Binding RunNextAttackCommand}" />
       <Button Content="Run Next Turn" Command="{Binding RunNextTurnCommand}" />
@@ -56,7 +79,8 @@
                     Width="170" />
         </Grid>
 
-        <ItemsControl x:Name="LeftFormationGrid" Grid.Row="2" ItemsSource="{Binding LeftGridCells}">
+        <Border Grid.Row="2" Classes="formationGridFrame">
+        <ItemsControl x:Name="LeftFormationGrid" Classes="formationGrid" ItemsSource="{Binding LeftGridCells}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <UniformGrid Rows="3" Columns="3" />
@@ -64,10 +88,9 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="{Binding BorderBrush}"
+              <Border Classes="formationCell"
+                      BorderBrush="{Binding BorderBrush}"
                       BorderThickness="{Binding BorderThickness}"
-                      MinHeight="132"
-                      Padding="5"
                       Background="{Binding BackgroundBrush}"
                       PointerPressed="OnGridCellPointerPressed"
                       PointerMoved="OnGridCellPointerMoved"
@@ -95,8 +118,10 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+        </Border>
 
-        <ItemsControl x:Name="RightFormationGrid" Grid.Row="2" Grid.Column="1" ItemsSource="{Binding RightGridCells}">
+        <Border Grid.Row="2" Grid.Column="1" Classes="formationGridFrame">
+        <ItemsControl x:Name="RightFormationGrid" Classes="formationGrid" ItemsSource="{Binding RightGridCells}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <UniformGrid Rows="3" Columns="3" />
@@ -104,10 +129,9 @@
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border BorderBrush="{Binding BorderBrush}"
+              <Border Classes="formationCell"
+                      BorderBrush="{Binding BorderBrush}"
                       BorderThickness="{Binding BorderThickness}"
-                      MinHeight="132"
-                      Padding="5"
                       Background="{Binding BackgroundBrush}"
                       PointerPressed="OnGridCellPointerPressed"
                       PointerMoved="OnGridCellPointerMoved"
@@ -135,6 +159,7 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+        </Border>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
           <Button Content="Normal"
@@ -212,10 +237,12 @@
              MinHeight="64"
              Watermark="Selected battle log entry" />
   </Grid>
+      </ScrollViewer>
     </TabItem>
 
     <TabItem Header="Formation Builder">
-      <Grid RowDefinitions="Auto,*" ColumnDefinitions="320,*,260" ColumnSpacing="16" RowSpacing="12" Margin="0,8,0,0">
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid RowDefinitions="Auto,*" ColumnDefinitions="300,360,260" ColumnSpacing="16" RowSpacing="12" Margin="0,8,0,0" MinWidth="960" MinHeight="600">
         <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8">
           <Button Content="New Template" Command="{Binding FormationBuilder.NewTemplateCommand}" />
           <Button Content="Save Template" Command="{Binding FormationBuilder.SaveTemplateCommand}" />
@@ -261,12 +288,11 @@
                        TextWrapping="Wrap" />
           </StackPanel>
           <Grid Grid.Row="2" RowDefinitions="*,Auto" RowSpacing="4" HorizontalAlignment="Center">
-            <Grid x:Name="BuilderGridLayer" Width="390" Height="390">
-              <Border BorderBrush="#555" BorderThickness="1" Background="White">
+            <Grid x:Name="BuilderGridLayer" Width="326" Height="326" HorizontalAlignment="Center">
+              <Border Classes="formationGridFrame">
                 <ItemsControl x:Name="BuilderFormationGrid"
-                              ItemsSource="{Binding FormationBuilder.FormationGridCells}"
-                              Width="390"
-                              Height="390">
+                              Classes="formationGrid"
+                              ItemsSource="{Binding FormationBuilder.FormationGridCells}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                       <UniformGrid Rows="3" Columns="3" />
@@ -274,25 +300,23 @@
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <Border Width="130"
-                              Height="130"
-                              Padding="6"
+                      <Border Classes="formationCell"
                               Background="{Binding Background}"
                               BorderBrush="{Binding BorderBrush}"
-                              BorderThickness="1"
                               PointerPressed="OnBuilderCellPointerPressed"
                               PointerMoved="OnBuilderCellPointerMoved"
                               PointerReleased="OnBuilderCellPointerReleased">
                         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                          <StackPanel Spacing="3" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="112">
+                          <StackPanel Spacing="2" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="96">
                             <TextBlock Text="{Binding Label}"
                                        FontWeight="SemiBold"
+                                       FontSize="12"
                                        TextAlignment="Center"
                                        TextTrimming="CharacterEllipsis"
                                        TextWrapping="NoWrap" />
                             <Image Source="{Binding PortraitImage}"
-                                   Width="44"
-                                   Height="44"
+                                   Width="38"
+                                   Height="38"
                                    Stretch="Uniform"
                                    HorizontalAlignment="Center"
                                    IsVisible="{Binding HasPortrait}" />
@@ -345,6 +369,7 @@
           </ListBox>
         </Grid>
       </Grid>
+      </ScrollViewer>
     </TabItem>
   </TabControl>
 </Window>
