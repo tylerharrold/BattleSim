@@ -207,24 +207,24 @@ public sealed class BattleState
                     SlotId = "fighter-1",
                     Name = "Blue Fighter",
                     TroopClassId = BuiltInTroopClasses.Fighter.Id,
-                    Row = 1,
-                    Column = 2
+                    Row = 2,
+                    Column = 1
                 },
                 new UnitTemplateTroop
                 {
                     SlotId = "archer-1",
                     Name = "Blue Archer",
                     TroopClassId = BuiltInTroopClasses.Archer.Id,
-                    Row = 0,
-                    Column = 1
+                    Row = 1,
+                    Column = 0
                 },
                 new UnitTemplateTroop
                 {
                     SlotId = "cleric-leader",
                     Name = "Blue Cleric",
                     TroopClassId = BuiltInTroopClasses.Cleric.Id,
-                    Row = 2,
-                    Column = 1,
+                    Row = 1,
+                    Column = 2,
                     IsLeader = true
                 }
             ]
@@ -244,8 +244,8 @@ public sealed class BattleState
                     SlotId = "fighter-leader",
                     Name = "Red Fighter",
                     TroopClassId = BuiltInTroopClasses.Fighter.Id,
-                    Row = 1,
-                    Column = 2,
+                    Row = 2,
+                    Column = 1,
                     IsLeader = true
                 },
                 new UnitTemplateTroop
@@ -253,16 +253,16 @@ public sealed class BattleState
                     SlotId = "wizard-1",
                     Name = "Red Wizard",
                     TroopClassId = BuiltInTroopClasses.Wizard.Id,
-                    Row = 2,
-                    Column = 1
+                    Row = 1,
+                    Column = 2
                 },
                 new UnitTemplateTroop
                 {
                     SlotId = "archer-1",
                     Name = "Red Archer",
                     TroopClassId = BuiltInTroopClasses.Archer.Id,
-                    Row = 0,
-                    Column = 1
+                    Row = 1,
+                    Column = 0
                 }
             ]
         };

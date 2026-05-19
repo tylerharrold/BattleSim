@@ -35,8 +35,10 @@ public sealed class UnitFactory
 
     public static GridPosition ToRuntimePosition(UnitTemplateTroop troop, BattleSide side)
     {
+        // Templates are authored facing north with row 0 as the front. In battle, the front
+        // rotates toward the opposing unit: Blue faces global right, Red faces global left.
         return side == BattleSide.Left
-            ? new GridPosition(troop.Row, 2 - troop.Column)
-            : new GridPosition(2 - troop.Row, troop.Column);
+            ? new GridPosition(troop.Column, 2 - troop.Row)
+            : new GridPosition(2 - troop.Column, troop.Row);
     }
 }

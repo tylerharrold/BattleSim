@@ -847,7 +847,7 @@ public sealed class BattleEngineTests
         Assert.Equal(BuiltInTroopClasses.Archer.Id, troop.ClassDefinition.Id);
         Assert.Equal(BuiltInTroopClasses.Archer.BaseStats, troop.Stats);
         Assert.Equal(BuiltInTroopClasses.Archer.PortraitAssetPath, troop.ClassDefinition.PortraitAssetPath);
-        Assert.Equal(new GridPosition(1, 2), troop.Position);
+        Assert.Equal(new GridPosition(0, 1), troop.Position);
         Assert.Equal("Template Archer", unit.LeaderName);
     }
 
@@ -855,9 +855,12 @@ public sealed class BattleEngineTests
     public void UnitFactory_MirrorsLocalFormationForOpposingSides()
     {
         var frontLeftTroop = CreateTemplateTroop("fighter-1", row: 0, column: 0);
+        var frontMiddleTroop = CreateTemplateTroop("fighter-2", row: 0, column: 1);
 
         Assert.Equal(new GridPosition(0, 2), UnitFactory.ToRuntimePosition(frontLeftTroop, BattleSide.Left));
         Assert.Equal(new GridPosition(2, 0), UnitFactory.ToRuntimePosition(frontLeftTroop, BattleSide.Right));
+        Assert.Equal(new GridPosition(1, 2), UnitFactory.ToRuntimePosition(frontMiddleTroop, BattleSide.Left));
+        Assert.Equal(new GridPosition(1, 0), UnitFactory.ToRuntimePosition(frontMiddleTroop, BattleSide.Right));
     }
 
     [Fact]

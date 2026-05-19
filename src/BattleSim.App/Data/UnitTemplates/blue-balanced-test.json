@@ -2,8 +2,8 @@
   "id": "blue-balanced-test",
   "name": "Blue Unit",
   "troops": [
-    { "slotId": "fighter-1", "name": "Blue Fighter", "troopClassId": "fighter", "row": 1, "column": 2 },
-    { "slotId": "archer-1", "name": "Blue Archer", "troopClassId": "archer", "row": 0, "column": 1 },
-    { "slotId": "cleric-leader", "name": "Blue Cleric", "troopClassId": "cleric", "row": 2, "column": 1, "isLeader": true }
+    { "slotId": "fighter-1", "name": "Blue Fighter", "troopClassId": "fighter", "row": 2, "column": 1 },
+    { "slotId": "archer-1", "name": "Blue Archer", "troopClassId": "archer", "row": 1, "column": 0 },
+    { "slotId": "cleric-leader", "name": "Blue Cleric", "troopClassId": "cleric", "row": 1, "column": 2, "isLeader": true }
   ]
 }

@@ -7,6 +7,6 @@ public sealed class UnitTemplate
     public string Name { get; init; } = string.Empty;
 
     // Template positions are local to the unit, not screen coordinates.
-    // Column 0 is the unit's front row; Row 0 is the unit's left side.
+    // Row 0 is the unit's front/north row in the formation builder; Column 0 is the unit's left side.
     public IReadOnlyList<UnitTemplateTroop> Troops { get; init; } = Array.Empty<UnitTemplateTroop>();
 }
