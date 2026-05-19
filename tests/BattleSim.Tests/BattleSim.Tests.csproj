@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BattleSim.App\BattleSim.App.csproj" />
     <ProjectReference Include="..\..\src\BattleSim.Domain\BattleSim.Domain.csproj" />
     <ProjectReference Include="..\..\src\BattleSim.Engine\BattleSim.Engine.csproj" />
   </ItemGroup>

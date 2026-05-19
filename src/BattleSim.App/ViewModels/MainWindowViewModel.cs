@@ -33,6 +33,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly Dictionary<string, IImage> portraitCache = new();
     private readonly UnitTemplate fallbackLeftTemplate = BattleState.CreateDefaultLeftTemplate();
     private readonly UnitTemplate fallbackRightTemplate = BattleState.CreateDefaultRightTemplate();
+    private readonly string unitTemplateDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "UnitTemplates");
     private DraggedTroop? draggedTroop;
     private DropPreview? dropPreview;
     private bool isSelectingInitialTemplates;
@@ -46,10 +47,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedLeftUnitTemplate = FindTemplateOption(fallbackLeftTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
         SelectedRightUnitTemplate = FindTemplateOption(fallbackRightTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
         isSelectingInitialTemplates = false;
+        FormationBuilder = new FormationBuilderViewModel(
+            unitTemplateDirectory,
+            BuiltInTroopClasses.ById,
+            ApplyDraftTemplateToSide,
+            RefreshUnitTemplateOptions,
+            GetPortraitImage);
+        FormationBuilder.SetExistingTemplateIds(UnitTemplateOptions.Select(option => option.Id));
         battleState = CreateBattleStateFromSelectedTemplates();
         RebuildSetupLog("Battle initialized.");
         RefreshFromState();
     }
+
+    public FormationBuilderViewModel FormationBuilder { get; }
 
     public ObservableCollection<UnitTemplateOptionViewModel> UnitTemplateOptions { get; } = new();
 
@@ -520,8 +530,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private IReadOnlyList<UnitTemplate> LoadTemplatesFromDisk()
     {
-        var templateDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "UnitTemplates");
-        var repository = new UnitTemplateRepository(templateDirectory, BuiltInTroopClasses.ById);
+        var repository = new UnitTemplateRepository(unitTemplateDirectory, BuiltInTroopClasses.ById);
 
         try
         {
@@ -573,6 +582,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedBattleLogEntry = null;
         RebuildSetupLog(logLine);
         RefreshFromState();
+    }
+
+    private void ApplyDraftTemplateToSide(BattleSide side, UnitTemplate template)
+    {
+        var sideName = side == BattleSide.Left ? "Blue" : "Red";
+        ReplaceUnitFromTemplate(side, template, $"{template.Name} applied to {sideName} side.");
+    }
+
+    private void RefreshUnitTemplateOptions()
+    {
+        var leftTemplateId = SelectedLeftUnitTemplate?.Id;
+        var rightTemplateId = SelectedRightUnitTemplate?.Id;
+
+        isSelectingInitialTemplates = true;
+        UnitTemplateOptions.Clear();
+        LoadUnitTemplates();
+        SelectedLeftUnitTemplate = FindTemplateOption(leftTemplateId ?? fallbackLeftTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
+        SelectedRightUnitTemplate = FindTemplateOption(rightTemplateId ?? fallbackRightTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
+        isSelectingInitialTemplates = false;
+        FormationBuilder.SetExistingTemplateIds(UnitTemplateOptions.Select(option => option.Id));
     }
 
     private void RotateFormation(BattleSide side, string logLine)

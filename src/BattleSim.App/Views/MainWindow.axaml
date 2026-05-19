@@ -7,7 +7,9 @@
         MinWidth="760"
         MinHeight="500"
         Title="BattleSim">
-  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,320" Margin="16" ColumnSpacing="16" RowSpacing="16">
+  <TabControl Margin="16">
+    <TabItem Header="Battle">
+  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,320" ColumnSpacing="16" RowSpacing="16">
     <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8">
       <Button Content="Run Next Attack" Command="{Binding RunNextAttackCommand}" />
       <Button Content="Run Next Turn" Command="{Binding RunNextTurnCommand}" />
@@ -210,4 +212,139 @@
              MinHeight="64"
              Watermark="Selected battle log entry" />
   </Grid>
+    </TabItem>
+
+    <TabItem Header="Formation Builder">
+      <Grid RowDefinitions="Auto,*" ColumnDefinitions="320,*,260" ColumnSpacing="16" RowSpacing="12" Margin="0,8,0,0">
+        <StackPanel Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8">
+          <Button Content="New Template" Command="{Binding FormationBuilder.NewTemplateCommand}" />
+          <Button Content="Save Template" Command="{Binding FormationBuilder.SaveTemplateCommand}" />
+          <TextBlock Text="{Binding FormationBuilder.StatusMessage}" VerticalAlignment="Center" Margin="8,0,0,0" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Spacing="8">
+          <TextBlock Text="Template" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="Name" />
+          <TextBox Text="{Binding FormationBuilder.DraftTemplateName, Mode=TwoWay}" />
+          <TextBlock Text="Id" />
+          <TextBox Text="{Binding FormationBuilder.DraftTemplateId, Mode=TwoWay}"
+                   Watermark="Generated from name if left blank" />
+
+          <Separator Margin="0,8,0,4" />
+
+          <TextBlock Text="Add Troop" FontSize="16" FontWeight="SemiBold" />
+          <ComboBox ItemsSource="{Binding FormationBuilder.AvailableTroopClasses}"
+                    SelectedItem="{Binding FormationBuilder.SelectedTroopClass, Mode=TwoWay}" />
+          <Button Content="Add Troop" Command="{Binding FormationBuilder.AddTroopCommand}" />
+          <Button Content="Remove Selected" Command="{Binding FormationBuilder.RemoveSelectedTroopCommand}" />
+
+          <Separator Margin="0,8,0,4" />
+
+          <TextBlock Text="Validation" FontSize="16" FontWeight="SemiBold" />
+          <ItemsControl ItemsSource="{Binding FormationBuilder.ValidationMessages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding}" Foreground="#B00020" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,*" RowSpacing="8">
+          <TextBlock Text="Formation" FontSize="18" FontWeight="SemiBold" />
+          <StackPanel Grid.Row="1" Spacing="2" HorizontalAlignment="Center">
+            <TextBlock Text="Front" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="Local formation faces this direction before Blue/Red side mirroring."
+                       FontSize="11"
+                       Foreground="#666"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+          <Grid Grid.Row="2" RowDefinitions="*,Auto" RowSpacing="4" HorizontalAlignment="Center">
+            <Grid x:Name="BuilderGridLayer" Width="390" Height="390">
+              <Border BorderBrush="#555" BorderThickness="1" Background="White">
+                <ItemsControl x:Name="BuilderFormationGrid"
+                              ItemsSource="{Binding FormationBuilder.FormationGridCells}"
+                              Width="390"
+                              Height="390">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Rows="3" Columns="3" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Width="130"
+                              Height="130"
+                              Padding="6"
+                              Background="{Binding Background}"
+                              BorderBrush="{Binding BorderBrush}"
+                              BorderThickness="1"
+                              PointerPressed="OnBuilderCellPointerPressed"
+                              PointerMoved="OnBuilderCellPointerMoved"
+                              PointerReleased="OnBuilderCellPointerReleased">
+                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                          <StackPanel Spacing="3" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="112">
+                            <TextBlock Text="{Binding Label}"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap" />
+                            <Image Source="{Binding PortraitImage}"
+                                   Width="44"
+                                   Height="44"
+                                   Stretch="Uniform"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding HasPortrait}" />
+                            <TextBlock Text="{Binding ClassName}"
+                                       FontSize="12"
+                                       TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap" />
+                            <TextBlock Text="Leader"
+                                       FontSize="11"
+                                       Foreground="#8A5A00"
+                                       HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsLeader}" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+              <Canvas IsHitTestVisible="False">
+                <Image Source="{Binding FormationBuilder.DraggedPortraitImage}"
+                       IsVisible="{Binding FormationBuilder.IsDraggingTroop}"
+                       Width="48"
+                       Height="48"
+                       Stretch="Uniform"
+                       Canvas.Left="{Binding FormationBuilder.DraggedPortraitLeft}"
+                       Canvas.Top="{Binding FormationBuilder.DraggedPortraitTop}" />
+              </Canvas>
+            </Grid>
+            <TextBlock Grid.Row="1" Text="Back" FontWeight="SemiBold" HorizontalAlignment="Center" />
+          </Grid>
+        </Grid>
+
+        <Grid Grid.Row="1" Grid.Column="2" RowDefinitions="Auto,*" RowSpacing="8">
+          <TextBlock Text="Troops" FontSize="18" FontWeight="SemiBold" />
+          <ListBox Grid.Row="1"
+                   ItemsSource="{Binding FormationBuilder.DraftTroops}"
+                   SelectedItem="{Binding FormationBuilder.SelectedDraftTroop, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="4" Margin="0,4">
+                  <TextBox Text="{Binding Name, Mode=TwoWay}" />
+                  <TextBlock Text="{Binding ClassName}" FontSize="12" />
+                  <TextBlock Text="{Binding SlotId}" FontSize="11" Foreground="#666" />
+                  <CheckBox Content="Leader" IsChecked="{Binding IsLeader, Mode=TwoWay}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Grid>
+    </TabItem>
+  </TabControl>
 </Window>

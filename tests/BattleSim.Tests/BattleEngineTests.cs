@@ -1,3 +1,4 @@
+using BattleSim.App.ViewModels;
 using BattleSim.Engine;
 using BattleSim.Domain.Enums;
 using BattleSim.Domain.Models;
@@ -913,6 +914,128 @@ public sealed class BattleEngineTests
         Assert.DoesNotContain("MaxBattleAttacks", templateTroopProperties);
     }
 
+    [Fact]
+    public void FormationBuilder_NewDraftStartsEmptyAndInvalid()
+    {
+        var builder = CreateFormationBuilder();
+
+        Assert.Empty(builder.DraftTroops);
+        Assert.False(builder.CanSave);
+        Assert.NotEmpty(builder.ValidationMessages);
+    }
+
+    [Fact]
+    public void FormationBuilder_AddTroopUsesKnownClassAndFirstEmptyGridPosition()
+    {
+        var builder = CreateFormationBuilder();
+        builder.DraftTemplateName = "Builder Test";
+
+        builder.AddTroop();
+
+        var troop = builder.DraftTroops.Single();
+        Assert.Equal("archer", troop.TroopClassId);
+        Assert.Equal(0, troop.Row);
+        Assert.Equal(0, troop.Column);
+        Assert.True(troop.IsLeader);
+    }
+
+    [Fact]
+    public void FormationBuilder_CannotAddMoreThanFiveTroops()
+    {
+        var builder = CreateFormationBuilder();
+
+        for (var index = 0; index < 6; index++)
+        {
+            builder.AddTroop();
+        }
+
+        Assert.Equal(5, builder.DraftTroops.Count);
+        Assert.False(builder.CanAddTroop);
+    }
+
+    [Fact]
+    public void FormationBuilder_CannotMoveTroopOutOfBounds()
+    {
+        var builder = CreateFormationBuilder();
+        builder.AddTroop();
+
+        var moved = builder.MoveSelectedTroop(new GridPosition(4, 1));
+
+        Assert.False(moved);
+        Assert.Equal(0, builder.SelectedDraftTroop!.Row);
+        Assert.Equal(0, builder.SelectedDraftTroop.Column);
+    }
+
+    [Fact]
+    public void FormationBuilder_CannotMoveTroopIntoOccupiedCell()
+    {
+        var builder = CreateFormationBuilder();
+        builder.AddTroop();
+        var firstTroop = builder.SelectedDraftTroop!;
+        builder.AddTroop();
+        var secondTroop = builder.SelectedDraftTroop!;
+
+        var moved = builder.MoveSelectedTroop(new GridPosition(firstTroop.Row, firstTroop.Column));
+
+        Assert.False(moved);
+        Assert.Equal(0, firstTroop.Row);
+        Assert.Equal(0, firstTroop.Column);
+        Assert.Equal(0, secondTroop.Row);
+        Assert.Equal(1, secondTroop.Column);
+    }
+
+    [Fact]
+    public void FormationBuilder_RemovingTroopFreesGridCell()
+    {
+        var builder = CreateFormationBuilder();
+        builder.AddTroop();
+        builder.RemoveSelectedTroop();
+        builder.AddTroop();
+
+        var troop = builder.DraftTroops.Single();
+        Assert.Equal(0, troop.Row);
+        Assert.Equal(0, troop.Column);
+    }
+
+    [Fact]
+    public void FormationBuilder_SaveProducesJsonLoadableByRepository()
+    {
+        var templateDirectory = CreateTempTemplateDirectory();
+        var builder = CreateFormationBuilder(templateDirectory);
+        builder.DraftTemplateName = "Saved Builder Unit";
+        builder.AddTroop();
+
+        builder.SaveTemplate();
+
+        var repository = new UnitTemplateRepository(templateDirectory, BuiltInTroopClasses.ById);
+        var template = repository.LoadAll().Single();
+        Assert.Equal("saved-builder-unit", template.Id);
+        Assert.Equal("Saved Builder Unit", template.Name);
+        Assert.Single(template.Troops);
+    }
+
+    [Fact]
+    public void FormationBuilder_ApplyDraftUsesExistingBattleTemplateFlow()
+    {
+        BattleState? state = null;
+        var builder = new FormationBuilderViewModel(
+            CreateTempTemplateDirectory(),
+            BuiltInTroopClasses.ById,
+            (side, template) =>
+            {
+                state = BattleState.CreateDefault(seed: 1).ReplaceUnitFromTemplate(side, template, seed: 1);
+            });
+        builder.DraftTemplateName = "Applied Builder Unit";
+        builder.AddTroop();
+
+        builder.ApplyToBlue();
+
+        Assert.NotNull(state);
+        Assert.Equal("Applied Builder Unit", state!.LeftUnit.Name);
+        Assert.Single(state.LeftUnit.Troops);
+        Assert.Equal(BuiltInTroopClasses.Archer.Id, state.LeftUnit.Troops.Single().ClassDefinition.Id);
+    }
+
     private static string FindRepoFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -959,6 +1082,20 @@ public sealed class BattleEngineTests
             Column = column,
             IsLeader = isLeader
         };
+    }
+
+    private static FormationBuilderViewModel CreateFormationBuilder(string? templateDirectory = null)
+    {
+        return new FormationBuilderViewModel(
+            templateDirectory ?? CreateTempTemplateDirectory(),
+            BuiltInTroopClasses.ById);
+    }
+
+    private static string CreateTempTemplateDirectory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "BattleSimTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        return directory;
     }
 
     private static string[] GetActionNames(Troop troop, BattleSide side)

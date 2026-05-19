@@ -8,6 +8,8 @@ public sealed class UnitTemplateRepository
     private readonly IReadOnlyDictionary<string, TroopClassDefinition> classDefinitions;
     private readonly JsonSerializerOptions serializerOptions = new()
     {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true
@@ -48,5 +50,23 @@ public sealed class UnitTemplateRepository
 
         UnitTemplateValidator.ValidateAndThrow(template, classDefinitions);
         return template;
+    }
+
+    public string SaveNew(UnitTemplate template)
+    {
+        UnitTemplateValidator.ValidateAndThrow(template, classDefinitions);
+        Directory.CreateDirectory(templateDirectory);
+
+        var fileName = $"{template.Id}.json";
+        var path = Path.Combine(templateDirectory, fileName);
+
+        if (File.Exists(path))
+        {
+            throw new IOException($"Unit template '{template.Id}' already exists.");
+        }
+
+        using var stream = File.Create(path);
+        JsonSerializer.Serialize(stream, template, serializerOptions);
+        return path;
     }
 }

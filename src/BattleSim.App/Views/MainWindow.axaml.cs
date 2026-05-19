@@ -13,6 +13,8 @@ public sealed partial class MainWindow : Window
     private const int GridSize = 3;
     private int arrowRequestVersion;
     private bool isDraggingTroop;
+    private bool isDraggingBuilderTroop;
+    private FormationBuilderCellViewModel? builderDragStartCell;
 
     public MainWindow()
     {
@@ -126,6 +128,82 @@ public sealed partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void OnBuilderCellPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel ||
+            sender is not Control control ||
+            control.DataContext is not FormationBuilderCellViewModel cell)
+        {
+            return;
+        }
+
+        var pointer = e.GetCurrentPoint(BuilderGridLayer);
+        if (!pointer.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        viewModel.FormationBuilder.SelectOrMoveCell(cell);
+
+        if (cell.IsOccupied)
+        {
+            isDraggingBuilderTroop = true;
+            builderDragStartCell = cell;
+            e.Pointer.Capture(control);
+            viewModel.FormationBuilder.BeginTroopDrag(cell, pointer.Position.X, pointer.Position.Y);
+        }
+
+        e.Handled = true;
+    }
+
+    private void OnBuilderCellPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!isDraggingBuilderTroop || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var pointerPosition = e.GetPosition(BuilderGridLayer);
+        var hoverPosition = TryGetBuilderCellAtPoint(pointerPosition, out var position)
+            ? position
+            : (GridPosition?)null;
+
+        viewModel.FormationBuilder.UpdateTroopDrag(pointerPosition.X, pointerPosition.Y, hoverPosition);
+        e.Handled = true;
+    }
+
+    private void OnBuilderCellPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (!isDraggingBuilderTroop)
+        {
+            if (sender is Control control &&
+                control.DataContext is FormationBuilderCellViewModel cell)
+            {
+                viewModel.FormationBuilder.SelectOrMoveCell(cell);
+                e.Handled = true;
+            }
+
+            return;
+        }
+
+        isDraggingBuilderTroop = false;
+        e.Pointer.Capture(null);
+
+        var pointerPosition = e.GetPosition(BuilderGridLayer);
+        var destination = TryGetBuilderCellAtPoint(pointerPosition, out var position)
+            ? position
+            : (GridPosition?)null;
+        viewModel.FormationBuilder.CompleteTroopDrag(destination);
+
+        builderDragStartCell = null;
+        e.Handled = true;
+    }
+
     private bool TryGetCellCenter(BattleSide side, GridPosition position, out Point center)
     {
         var formationGrid = side == BattleSide.Left ? LeftFormationGrid : RightFormationGrid;
@@ -192,6 +270,29 @@ public sealed partial class MainWindow : Window
 
         var column = Math.Min(GridSize - 1, (int)(localX / (formationGrid.Bounds.Width / GridSize)));
         var row = Math.Min(GridSize - 1, (int)(localY / (formationGrid.Bounds.Height / GridSize)));
+        position = new GridPosition(row, column);
+        return true;
+    }
+
+    private bool TryGetBuilderCellAtPoint(Point point, out GridPosition position)
+    {
+        position = default;
+
+        if (BuilderGridLayer.Bounds.Width <= 0 || BuilderGridLayer.Bounds.Height <= 0)
+        {
+            return false;
+        }
+
+        if (point.X < 0 ||
+            point.Y < 0 ||
+            point.X > BuilderGridLayer.Bounds.Width ||
+            point.Y > BuilderGridLayer.Bounds.Height)
+        {
+            return false;
+        }
+
+        var column = Math.Min(GridSize - 1, (int)(point.X / (BuilderGridLayer.Bounds.Width / GridSize)));
+        var row = Math.Min(GridSize - 1, (int)(point.Y / (BuilderGridLayer.Bounds.Height / GridSize)));
         position = new GridPosition(row, column);
         return true;
     }
