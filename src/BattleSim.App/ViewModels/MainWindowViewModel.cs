@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using BattleSim.App.Services;
 using BattleSim.Domain.Enums;
 using BattleSim.Domain.Models;
 using BattleSim.Engine;
@@ -33,7 +34,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly Dictionary<string, IImage> portraitCache = new();
     private readonly UnitTemplate fallbackLeftTemplate = BattleState.CreateDefaultLeftTemplate();
     private readonly UnitTemplate fallbackRightTemplate = BattleState.CreateDefaultRightTemplate();
-    private readonly string unitTemplateDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "UnitTemplates");
+    private readonly string builtInTemplateDirectory = DevelopmentTemplatePaths.GetBuiltInTemplateDirectory();
+    private readonly string developmentTemplateDirectory = DevelopmentTemplatePaths.GetDevelopmentTemplateDirectory();
     private DraggedTroop? draggedTroop;
     private DropPreview? dropPreview;
     private bool isSelectingInitialTemplates;
@@ -48,7 +50,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SelectedRightUnitTemplate = FindTemplateOption(fallbackRightTemplate.Id) ?? UnitTemplateOptions.FirstOrDefault();
         isSelectingInitialTemplates = false;
         FormationBuilder = new FormationBuilderViewModel(
-            unitTemplateDirectory,
+            developmentTemplateDirectory,
             BuiltInTroopClasses.ById,
             ApplyDraftTemplateToSide,
             RefreshUnitTemplateOptions,
@@ -530,7 +532,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private IReadOnlyList<UnitTemplate> LoadTemplatesFromDisk()
     {
-        var repository = new UnitTemplateRepository(unitTemplateDirectory, BuiltInTroopClasses.ById);
+        var templatesById = new Dictionary<string, UnitTemplate>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var template in LoadTemplatesFromDirectory(builtInTemplateDirectory))
+        {
+            templatesById[template.Id] = template;
+        }
+
+        foreach (var template in LoadTemplatesFromDirectory(developmentTemplateDirectory))
+        {
+            templatesById[template.Id] = template;
+        }
+
+        return templatesById.Values
+            .OrderBy(template => template.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<UnitTemplate> LoadTemplatesFromDirectory(string templateDirectory)
+    {
+        var repository = new UnitTemplateRepository(templateDirectory, BuiltInTroopClasses.ById);
 
         try
         {

@@ -28,3 +28,6 @@ TestResults/
 
 # Local project continuity notes
 PROJECT_STATUS.txt
+
+# Development-only saved unit templates
+DevData/
