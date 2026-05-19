@@ -7,6 +7,7 @@ namespace BattleSim.Engine;
 public sealed class BattleEngine
 {
     private readonly Random random;
+    private readonly IBattleActionResolver actionResolver;
 
     public BattleEngine()
         : this(Random.Shared)
@@ -14,8 +15,14 @@ public sealed class BattleEngine
     }
 
     public BattleEngine(Random random)
+        : this(random, new BattleActionResolver(random))
+    {
+    }
+
+    public BattleEngine(Random random, IBattleActionResolver actionResolver)
     {
         this.random = random;
+        this.actionResolver = actionResolver;
     }
 
     public BattleStepResult RunNextAttack(BattleState state)
@@ -39,14 +46,14 @@ public sealed class BattleEngine
             {
                 var defenderSide = nextState.CurrentSide == BattleSide.Left ? BattleSide.Right : BattleSide.Left;
                 var action = GetNextBattleAction(nextAttacker.Troop, nextState.CurrentSide);
-                ResolveAction(
+                var actionResult = ResolveAction(
                     nextAttacker.Troop,
                     action,
                     nextState.CurrentSide,
                     nextState.GetUnit(nextState.CurrentSide),
                     nextState.GetOpponent(nextState.CurrentSide),
-                    defenderSide,
-                    events);
+                    defenderSide);
+                events.AddRange(actionResult.Events);
                 nextState = AdvanceAfterAttack(nextState, nextAttacker.TroopOrderIndex);
                 break;
             }
@@ -141,14 +148,13 @@ public sealed class BattleEngine
         return actions[actionIndex];
     }
 
-    private void ResolveAction(
+    private BattleActionResult ResolveAction(
         Troop attacker,
         BattleActionDefinition action,
         BattleSide attackerSide,
         Unit attackerUnit,
         Unit defenderUnit,
-        BattleSide defenderSide,
-        ICollection<BattleEvent> events)
+        BattleSide defenderSide)
     {
         var targetingContext = new TargetingContext(
             attacker,
@@ -159,145 +165,12 @@ public sealed class BattleEngine
             random);
         var targets = action.TargetingRule.SelectTargets(targetingContext, action);
 
-        if (!targets.HasTargets)
-        {
-            attacker.SpendBattleAttack();
-            events.Add(new BattleEvent(
-                $"{attacker.Name} uses {action.DisplayName}, but has no valid target. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
-                attacker.Name,
-                Damage: 0,
-                ActorSide: attackerSide,
-                ActorPosition: attacker.Position,
-                Intent: GetEventIntent(action)));
-            return;
-        }
-
-        attacker.SpendBattleAttack();
-
-        foreach (var target in targets.Targets)
-        {
-            events.Add(ResolveActionAgainstTarget(
-                attacker,
-                action,
-                target,
-                attackerSide,
-                GetTargetSide(action, attackerSide, defenderSide)));
-        }
-    }
-
-    private BattleEvent ResolveActionAgainstTarget(
-        Troop attacker,
-        BattleActionDefinition action,
-        Troop target,
-        BattleSide attackerSide,
-        BattleSide targetSide)
-    {
-        if (action.ActionKind == ActionKind.Heal)
-        {
-            var healing = RollActionAmount(attacker, action, target, appliesDefense: false);
-            var missingHitPoints = target.Stats.MaxHitPoints - target.CurrentHitPoints;
-            var actualHealing = Math.Min(healing, missingHitPoints);
-            target.Heal(healing);
-
-            return new BattleEvent(
-                $"{attacker.Name} uses {action.DisplayName} on {target.Name} for {actualHealing} healing. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
-                attacker.Name,
-                target.Name,
-                Damage: 0,
-                ActorSide: attackerSide,
-                ActorPosition: attacker.Position,
-                TargetSide: targetSide,
-                TargetPosition: target.Position,
-                Intent: GetEventIntent(action));
-        }
-
-        var rollResult = ResolveDamageRoll(attacker, action, target);
-
-        if (!rollResult.DidHit)
-        {
-            return new BattleEvent(
-                $"{attacker.Name} uses {action.DisplayName} on {target.Name}, but misses. {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.",
-                attacker.Name,
-                target.Name,
-                Damage: 0,
-                ActorSide: attackerSide,
-                ActorPosition: attacker.Position,
-                TargetSide: targetSide,
-                TargetPosition: target.Position,
-                Intent: GetEventIntent(action));
-        }
-
-        target.TakeDamage(rollResult.TotalDamage);
-
-        return new BattleEvent(
-            FormatDamageEvent(attacker, action, target, rollResult),
-            attacker.Name,
-            target.Name,
-            rollResult.TotalDamage,
+        return actionResolver.Resolve(new BattleActionResolutionRequest(
+            attacker,
+            action,
+            targets.Targets,
             attackerSide,
-            attacker.Position,
-            targetSide,
-            target.Position,
-            GetEventIntent(action));
-    }
-
-    private CombatRollResult ResolveDamageRoll(Troop attacker, BattleActionDefinition action, Troop target)
-    {
-        var didHit = RollChance(action.Accuracy);
-        var wasLuckReroll = false;
-
-        if (!didHit && RollChance(CombatRollRules.GetLuckRerollChance(attacker.Stats.Luck)))
-        {
-            wasLuckReroll = true;
-            didHit = RollChance(action.Accuracy);
-        }
-
-        if (!didHit)
-        {
-            return new CombatRollResult(
-                DidHit: false,
-                WasLuckReroll: wasLuckReroll,
-                WasCritical: false,
-                BaseDamage: 0,
-                CriticalBonusDamage: 0);
-        }
-
-        var baseDamage = RollActionAmount(attacker, action, target, appliesDefense: true);
-        var wasCritical = action.CanCrit && RollChance(CombatRollRules.GetCriticalChance(attacker.Stats.Luck));
-        var criticalBonusDamage = wasCritical
-            ? Math.Max(1, (int)Math.Round(RollActionAmount(attacker, action, target, appliesDefense: true) * CombatRollRules.CriticalDamageScalar, MidpointRounding.AwayFromZero))
-            : 0;
-
-        return new CombatRollResult(
-            DidHit: true,
-            WasLuckReroll: wasLuckReroll,
-            WasCritical: wasCritical,
-            BaseDamage: baseDamage,
-            CriticalBonusDamage: criticalBonusDamage);
-    }
-
-    private int RollActionAmount(Troop attacker, BattleActionDefinition action, Troop target, bool appliesDefense)
-    {
-        var scalingStat = CombatRollRules.GetScalingStat(attacker.Stats, action.Scaling.Stat);
-        var multiplier = action.Scaling.RollMultiplier(scalingStat, random);
-        var scaledAmount = Math.Max(1, (int)Math.Round(action.BasePower * multiplier, MidpointRounding.AwayFromZero));
-
-        return appliesDefense
-            ? Math.Max(1, scaledAmount - target.Stats.Defense)
-            : scaledAmount;
-    }
-
-    private bool RollChance(decimal chance)
-    {
-        return (decimal)random.NextDouble() < Math.Clamp(chance, 0m, 1m);
-    }
-
-    private static string FormatDamageEvent(Troop attacker, BattleActionDefinition action, Troop target, CombatRollResult result)
-    {
-        var luckRerollText = result.WasLuckReroll ? " after a lucky retry" : string.Empty;
-        var critText = result.WasCritical ? $" Critical hit adds {result.CriticalBonusDamage} damage." : string.Empty;
-
-        return $"{attacker.Name} uses {action.DisplayName} on {target.Name}{luckRerollText} for {result.TotalDamage} damage.{critText} {attacker.Name} has {attacker.RemainingBattleAttacks} attacks left.";
+            GetTargetSide(action, attackerSide, defenderSide)));
     }
 
     private static BattleSide GetTargetSide(BattleActionDefinition action, BattleSide attackerSide, BattleSide defenderSide)
@@ -310,13 +183,6 @@ public sealed class BattleEngine
         return side == BattleSide.Left
             ? FormationOrientation.FrontOnRight
             : FormationOrientation.FrontOnLeft;
-    }
-
-    private static BattleEventIntent GetEventIntent(BattleActionDefinition action)
-    {
-        return action.ActionKind == ActionKind.Heal
-            ? BattleEventIntent.Helpful
-            : BattleEventIntent.Harmful;
     }
 
     private static BattleState AdvanceAfterAttack(BattleState state, int completedTroopOrderIndex)

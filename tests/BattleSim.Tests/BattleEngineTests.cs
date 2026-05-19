@@ -150,6 +150,18 @@ public sealed class BattleEngineTests
     }
 
     [Fact]
+    public void BattleEngine_DoesNotOwnDamageOrHealingResolutionImplementation()
+    {
+        var sourcePath = FindRepoFile("src/BattleSim.Engine/BattleEngine.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.DoesNotContain("ResolveDamageRoll", source);
+        Assert.DoesNotContain("RollActionAmount", source);
+        Assert.DoesNotContain("TakeDamage", source);
+        Assert.DoesNotContain("Heal(", source);
+    }
+
+    [Fact]
     public void BattleActionDefinition_UsesTargetingRuleObject()
     {
         Assert.IsType<MeleeTargetingRule>(BuiltInBattleActions.Slash.TargetingRule);
@@ -252,6 +264,121 @@ public sealed class BattleEngineTests
         Assert.Contains("misses", attackEvent.Description);
         Assert.Equal(0, attackEvent.Damage);
         Assert.Equal(target.Stats.MaxHitPoints, resultTarget.CurrentHitPoints);
+    }
+
+    [Fact]
+    public void BattleActionResolver_DamageActionAppliesDamageAndReturnsStructuredResult()
+    {
+        var resolver = new BattleActionResolver(new SequenceRandom(0.0, 0.0));
+        var action = CreateTestAction("test_slash", ActionKind.PhysicalDamage, TargetSide.Enemy, basePower: 9, accuracy: 1m, canCrit: false);
+        var attacker = CreateResolverTroop("Attacker", strength: 5, defense: 0, luck: 0);
+        var target = CreateResolverTroop("Target", strength: 5, defense: 3, luck: 0);
+        attacker.SetBattleAttackLimit(1);
+
+        var result = resolver.Resolve(new BattleActionResolutionRequest(
+            attacker,
+            action,
+            new[] { target },
+            BattleSide.Left,
+            BattleSide.Right));
+
+        var targetResult = result.TargetResults.Single();
+        Assert.Equal(BattleActionOutcome.Completed, result.Outcome);
+        Assert.True(targetResult.DidHit);
+        Assert.Equal(6, targetResult.DamageDealt);
+        Assert.Equal(target.Stats.MaxHitPoints - 6, target.CurrentHitPoints);
+        Assert.Equal(0, attacker.RemainingBattleAttacks);
+        Assert.Contains("for 6 damage", targetResult.Event.Description);
+    }
+
+    [Fact]
+    public void BattleActionResolver_MissedDamageActionDoesNotChangeHitPoints()
+    {
+        var resolver = new BattleActionResolver(new SequenceRandom(0.9, 0.9));
+        var action = CreateTestAction("test_slash", ActionKind.PhysicalDamage, TargetSide.Enemy, basePower: 9, accuracy: 0m, canCrit: false);
+        var attacker = CreateResolverTroop("Attacker", strength: 5, defense: 0, luck: 0);
+        var target = CreateResolverTroop("Target", strength: 5, defense: 3, luck: 0);
+        attacker.SetBattleAttackLimit(1);
+
+        var result = resolver.Resolve(new BattleActionResolutionRequest(
+            attacker,
+            action,
+            new[] { target },
+            BattleSide.Left,
+            BattleSide.Right));
+
+        var targetResult = result.TargetResults.Single();
+        Assert.False(targetResult.DidHit);
+        Assert.Equal(0, targetResult.DamageDealt);
+        Assert.Equal(target.Stats.MaxHitPoints, target.CurrentHitPoints);
+        Assert.Contains("misses", targetResult.Event.Description);
+    }
+
+    [Fact]
+    public void BattleActionResolver_CriticalHitAddsScaledBonusDamage()
+    {
+        var resolver = new BattleActionResolver(new SequenceRandom(0.0, 0.0, 0.0, 0.0));
+        var action = CreateTestAction("test_slash", ActionKind.PhysicalDamage, TargetSide.Enemy, basePower: 10, accuracy: 1m, canCrit: true);
+        var attacker = CreateResolverTroop("Attacker", strength: 5, defense: 0, luck: 100);
+        var target = CreateResolverTroop("Target", strength: 5, defense: 0, luck: 0);
+        attacker.SetBattleAttackLimit(1);
+
+        var result = resolver.Resolve(new BattleActionResolutionRequest(
+            attacker,
+            action,
+            new[] { target },
+            BattleSide.Left,
+            BattleSide.Right));
+
+        var targetResult = result.TargetResults.Single();
+        Assert.True(targetResult.WasCritical);
+        Assert.Equal(18, targetResult.DamageDealt);
+        Assert.Contains("Critical hit adds 8 damage.", targetResult.Event.Description);
+    }
+
+    [Fact]
+    public void BattleActionResolver_HealingActionRestoresHitPoints()
+    {
+        var resolver = new BattleActionResolver(new SequenceRandom(0.0));
+        var action = CreateTestAction("test_heal", ActionKind.Heal, TargetSide.Ally, basePower: 5, accuracy: 1m, canCrit: false);
+        var healer = CreateResolverTroop("Healer", strength: 5, defense: 0, luck: 0);
+        var target = CreateResolverTroop("Target", strength: 5, defense: 0, luck: 0);
+        healer.SetBattleAttackLimit(1);
+        target.TakeDamage(4);
+
+        var result = resolver.Resolve(new BattleActionResolutionRequest(
+            healer,
+            action,
+            new[] { target },
+            BattleSide.Left,
+            BattleSide.Left));
+
+        var targetResult = result.TargetResults.Single();
+        Assert.Equal(4, targetResult.HealingDone);
+        Assert.Equal(target.Stats.MaxHitPoints, target.CurrentHitPoints);
+        Assert.Equal(BattleEventIntent.Helpful, targetResult.Event.Intent);
+        Assert.Contains("for 4 healing", targetResult.Event.Description);
+    }
+
+    [Fact]
+    public void BattleActionResolver_NoValidTargetsSpendsActionAndReturnsNoTargetOutcome()
+    {
+        var resolver = new BattleActionResolver(new Random(1));
+        var action = CreateTestAction("test_slash", ActionKind.PhysicalDamage, TargetSide.Enemy, basePower: 9, accuracy: 1m, canCrit: false);
+        var attacker = CreateResolverTroop("Attacker", strength: 5, defense: 0, luck: 0);
+        attacker.SetBattleAttackLimit(1);
+
+        var result = resolver.Resolve(new BattleActionResolutionRequest(
+            attacker,
+            action,
+            Array.Empty<Troop>(),
+            BattleSide.Left,
+            BattleSide.Right));
+
+        Assert.Equal(BattleActionOutcome.NoValidTargets, result.Outcome);
+        Assert.Empty(result.TargetResults);
+        Assert.Equal(0, attacker.RemainingBattleAttacks);
+        Assert.Contains("no valid target", result.Events.Single().Description);
     }
 
     [Fact]
@@ -1121,5 +1248,63 @@ public sealed class BattleEngineTests
             FormationOrientation.FrontOnRight,
             FormationOrientation.FrontOnLeft,
             new Random(1));
+    }
+
+    private static BattleActionDefinition CreateTestAction(
+        string id,
+        ActionKind actionKind,
+        TargetSide targetSide,
+        int basePower,
+        decimal accuracy,
+        bool canCrit)
+    {
+        return new BattleActionDefinition(
+            id,
+            "Test Action",
+            actionKind,
+            targetSide,
+            BuiltInBattleActions.Slash.TargetingRule,
+            basePower,
+            new ActionStatScaling(CombatStat.Strength, 0m, 0m),
+            accuracy,
+            canCrit);
+    }
+
+    private static Troop CreateResolverTroop(string name, int strength, int defense, int luck)
+    {
+        var definition = new TroopClassDefinition(
+            $"{name.ToLowerInvariant()}-class",
+            $"{name} Class",
+            new Stats(
+                MaxHitPoints: 30,
+                Strength: strength,
+                Defense: defense,
+                Speed: 5,
+                Faith: 5,
+                Wisdom: 5,
+                Dexterity: 5,
+                Luck: luck),
+            new RowActionProfile(
+                Front: Array.Empty<BattleActionDefinition>(),
+                Middle: Array.Empty<BattleActionDefinition>(),
+                Back: Array.Empty<BattleActionDefinition>()),
+            PortraitAssetPath: string.Empty);
+
+        return new Troop(name, definition, new GridPosition(1, 1));
+    }
+
+    private sealed class SequenceRandom : Random
+    {
+        private readonly Queue<double> values;
+
+        public SequenceRandom(params double[] values)
+        {
+            this.values = new Queue<double>(values);
+        }
+
+        public override double NextDouble()
+        {
+            return values.Count > 0 ? values.Dequeue() : 0.0;
+        }
     }
 }
